@@ -44,14 +44,9 @@ static const size_t cache_line_len = 64UL;
 // impl
 // -----------------------------------------------------------------------------
 
-struct optics_lens
-{
-    struct optics *optics;
-    struct lens *lens;
-};
-
 static bool optics_defer_free(struct optics *optics, struct lens *ptr);
 
+// contains struct optics_lens
 #include "lens.c"
 
 
@@ -61,7 +56,7 @@ static bool optics_defer_free(struct optics *optics, struct lens *ptr);
 
 struct optics_packed optics_defer
 {
-    struct lens *ptr;
+    struct optics_lens *ptr;
     struct optics_defer *next;
 };
 
@@ -147,7 +142,7 @@ bool optics_set_prefix(struct optics *optics, const char *prefix)
 // alloc
 // -----------------------------------------------------------------------------
 
-static bool optics_defer_free(struct optics *optics, struct lens *ptr)
+static bool optics_defer_free(struct optics *optics, struct optics_lens *ptr)
 {
     struct optics_defer *node = malloc(sizeof(*pnode));
     if (!node) return false;
@@ -219,12 +214,12 @@ optics_epoch_t optics_epoch_inc_at(
 // list
 // -----------------------------------------------------------------------------
 
-static void optics_push_lens(struct optics *optics, struct lens *lens)
+static void optics_push_lens(struct optics *optics, struct optics_lens *lens)
 {
     optics_assert(!slock_try_lock(&optics->lock), "pushing lens without lock held");
 
     atomic_uintptr_t *head = &optics->header.lens_head;
-    struct lens *old_head = atomic_load_explicit(head, memory_order_relaxed);
+    struct optics_lens *old_head = atomic_load_explicit(head, memory_order_relaxed);
     lens_set_next(optics, lens, old_head);
 
     // Synchronizes with optics_foreach_lens to ensure that the node is fully
@@ -232,14 +227,14 @@ static void optics_push_lens(struct optics *optics, struct lens *lens)
     atomic_store_explicit(head, lens, memory_order_release);
 }
 
-static void optics_remove_lens(struct optics *optics, struct lens *lens)
+static void optics_remove_lens(struct optics *optics, struct optics_lens *lens)
 {
     optics_assert(!slock_try_lock(&optics->lock), "removing lens without lock held");
 
     lens_kill(optics, lens);
 
     atomic_uintptr_t *head = &optics->header.lens_head;
-    struct lens *old_head = atomic_load_explicit(head, memory_order_relaxed);
+    struct optics_lens *old_head = atomic_load_explicit(head, memory_order_relaxed);
     if (old_head == lens)
         atomic_store_explicit(head, lens_next(lens), memory_order_relaxed);
 }
@@ -252,10 +247,10 @@ enum optics_ret optics_foreach_lens(struct optics *optics, void *ctx, optics_for
     // Synchronizes with optics_push_lens to ensure that all nodes are fully
     // written before we access them.
     atomic_uintptr_t *head = &optics->header.lens_head;
-    struct lens *lens = atomic_load_explicit(head, memory_order_acquire);
+    struct optics_lens *lens = atomic_load_explicit(head, memory_order_acquire);
 
     while (lens) {
-        struct optics_lens ol = { .optics = optics, .lens = lens };
+        struct optics_lens ol = { .optics = optics };
         enum optics_ret ret = cb(ctx, &ol);
         if (ret != optics_ok) return ret;
 
@@ -292,7 +287,7 @@ struct optics_lens * optics_lens_get(struct optics *optics, const char *name)
 }
 
 static struct optics_lens *
-optics_lens_alloc(struct optics *optics, struct lens *lens)
+optics_lens_alloc(struct optics *optics, struct optics_lens *lens)
 {
     bool ok = false;
     {
@@ -318,7 +313,7 @@ optics_lens_alloc(struct optics *optics, struct lens *lens)
 }
 
 static struct optics_lens *
-optics_lens_alloc_get(struct optics *optics, struct lens *lens)
+optics_lens_alloc_get(struct optics *optics, struct optics_lens *lens)
 {
     {
         slock_lock(&optics->lock);
@@ -382,7 +377,7 @@ const char * optics_lens_name(struct optics_lens *l)
 
 struct optics_lens * optics_counter_alloc(struct optics *optics, const char *name)
 {
-    struct lens *counter = lens_counter_alloc(optics, name);
+    struct optics_lens *counter = lens_counter_alloc(optics, name);
     if (!counter) return NULL;
 
     struct optics_lens *lens = optics_lens_alloc(optics, counter);
@@ -394,7 +389,7 @@ struct optics_lens * optics_counter_alloc(struct optics *optics, const char *nam
 
 struct optics_lens * optics_counter_alloc_get(struct optics *optics, const char *name)
 {
-    struct lens *counter = lens_counter_alloc(optics, name);
+    struct optics_lens *counter = lens_counter_alloc(optics, name);
     if (!counter) return NULL;
 
     struct optics_lens *lens = optics_lens_alloc_get(optics, counter);
@@ -425,7 +420,7 @@ struct optics_lens * optics_quantile_alloc(
         double estimate,
         double adjustment)
 {
-    struct lens *quantile =
+    struct optics_lens *quantile =
         lens_quantile_alloc(optics, name, target_quantile, estimate, adjustment);
     if (!quantile) return NULL;
 
@@ -443,7 +438,7 @@ struct optics_lens * optics_quantile_alloc_get(
         double estimate,
         double adjustment)
 {
-    struct lens *quantile =
+    struct optics_lens *quantile =
         lens_quantile_alloc(optics, name, target_quantile, estimate, adjustment);
     if (!quantile) return NULL;
 
@@ -470,7 +465,7 @@ enum optics_ret optics_quantile_read(
 
 struct optics_lens * optics_gauge_alloc(struct optics *optics, const char *name)
 {
-    struct lens *gauge = lens_gauge_alloc(optics, name);
+    struct optics_lens *gauge = lens_gauge_alloc(optics, name);
     if (!gauge) return NULL;
 
     struct optics_lens *lens = optics_lens_alloc(optics, gauge);
@@ -482,7 +477,7 @@ struct optics_lens * optics_gauge_alloc(struct optics *optics, const char *name)
 
 struct optics_lens * optics_gauge_alloc_get(struct optics *optics, const char *name)
 {
-    struct lens *gauge = lens_gauge_alloc(optics, name);
+    struct optics_lens *gauge = lens_gauge_alloc(optics, name);
     if (!gauge) return NULL;
 
     struct optics_lens *lens = optics_lens_alloc_get(optics, gauge);
@@ -509,7 +504,7 @@ optics_gauge_read(struct optics_lens *lens, optics_epoch_t epoch, double *value)
 
 struct optics_lens * optics_dist_alloc(struct optics *optics, const char *name)
 {
-    struct lens *dist = lens_dist_alloc(optics, name);
+    struct optics_lens *dist = lens_dist_alloc(optics, name);
     if (!dist) return NULL;
 
     struct optics_lens *lens = optics_lens_alloc(optics, dist);
@@ -521,7 +516,7 @@ struct optics_lens * optics_dist_alloc(struct optics *optics, const char *name)
 
 struct optics_lens * optics_dist_alloc_get(struct optics *optics, const char *name)
 {
-    struct lens *dist = lens_dist_alloc(optics, name);
+    struct optics_lens *dist = lens_dist_alloc(optics, name);
     if (!dist) return NULL;
 
     struct optics_lens *lens = optics_lens_alloc_get(optics, dist);
@@ -549,7 +544,7 @@ optics_dist_read(struct optics_lens *lens, optics_epoch_t epoch, struct optics_d
 struct optics_lens * optics_histo_alloc(
         struct optics *optics, const char *name, const uint64_t *buckets, size_t buckets_len)
 {
-    struct lens *histo = lens_histo_alloc(optics, name, buckets, buckets_len);
+    struct optics_lens *histo = lens_histo_alloc(optics, name, buckets, buckets_len);
     if (!histo) return NULL;
 
     struct optics_lens *lens = optics_lens_alloc(optics, histo);
@@ -562,7 +557,7 @@ struct optics_lens * optics_histo_alloc(
 struct optics_lens * optics_histo_alloc_get(
         struct optics *optics, const char *name, const uint64_t *buckets, size_t buckets_len)
 {
-    struct lens *histo = lens_histo_alloc(optics, name, buckets, buckets_len);
+    struct optics_lens *histo = lens_histo_alloc(optics, name, buckets, buckets_len);
     if (!histo) return NULL;
 
     struct optics_lens *lens = optics_lens_alloc_get(optics, histo);

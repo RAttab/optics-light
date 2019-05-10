@@ -73,7 +73,12 @@ link_directories(${CMOCKA_LIBRARY_DIRS} ${DAEMON_LIBRARY_DIRS} ${LIBBSD_LIBRARY_
 
 set(OPTICS_SOURCES
     src/optics.c
-    src/utils/utils.c)
+    src/utils/utils.c
+    src/poller.c
+    src/backend_stdout.c
+    src/backend_carbon.c
+    src/backend_rest.c
+    src/utils/crest/crest.c)
 
 set(OPTICS_DEPS
     optics_static
@@ -85,23 +90,6 @@ add_library(optics SHARED ${OPTICS_SOURCES})
 target_link_libraries(optics ${MHD_LIBRARIES} ${LIBBSD_LIBRARIES} rt)
 
 
-set(OPTICS_POLLER_SOURCES
-    src/poller.c
-    src/backend_stdout.c
-    src/backend_carbon.c
-    src/backend_rest.c
-    src/utils/crest/crest.c)
-
-set(OPTICS_POLLER_DEPS
-    optics_poller_static
-    ${MHD_LIBRARIES}
-    ${OPTICS_DEPS})
-
-add_library(optics_poller_static STATIC ${OPTICS_POLLER_SOURCES})
-add_library(optics_poller SHARED ${OPTICS_POLLER_SOURCES})
-target_link_libraries(optics_poller ${MHD_LIBRARIES} ${LIBBSD_LIBRARIES} rt)
-
-
 #------------------------------------------------------------------------------#
 # BINS
 #------------------------------------------------------------------------------#
@@ -109,15 +97,12 @@ target_link_libraries(optics_poller ${MHD_LIBRARIES} ${LIBBSD_LIBRARIES} rt)
 add_executable(example test/example.c)
 target_link_libraries(example optics_static ${OPTICS_DEPS})
 
-add_executable(opticsd src/opticsd.c)
-target_link_libraries(opticsd ${OPTICS_POLLER_DEPS} ${DAEMON_LIBRARIES})
-
 
 #------------------------------------------------------------------------------#
 # INSTALL
 #------------------------------------------------------------------------------#
 
-install(TARGETS optics optics_static optics_poller optics_poller_static opticsd
+install(TARGETS optics optics_static
     RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR})
@@ -134,8 +119,6 @@ endfunction()
 
 optics_pc(optics)
 optics_pc(optics_static)
-optics_pc(optics_poller)
-optics_pc(optics_poller_static)
 
 
 #------------------------------------------------------------------------------#
@@ -175,7 +158,6 @@ endfunction()
 optics_cmocka_test(key)
 optics_cmocka_test(htable)
 optics_cmocka_test(buffer)
-optics_cmocka_test(region)
 optics_cmocka_test(timer)
 optics_cmocka_test(lens)
 optics_cmocka_test(lens_gauge)

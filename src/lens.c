@@ -10,20 +10,20 @@
 
 struct optics_packed lens
 {
-    optics_off_t off;
-
     size_t lens_len;
     size_t name_len;
 
-    atomic_off_t next;
-    optics_off_t prev;
+    atomic_uintptr_t next;
+    struct lens *prev;
 
     // Struct is packed so keep the int at the bottom to avoid alignment issues
     // (not that x86 cares all that much... I blame my OCD).
     enum optics_lens_type type;
 
     // Allign to a cache line to avoid alignment issues in the lens itself.
-    uint8_t padding[20];
+    // This can have a big impact as some lenses would otherwise do atomic
+    // operations across cache lines which is atrociously slow.
+    uint8_t padding[28];
 };
 
 static_assert(sizeof(struct lens) % 64 == 0,
@@ -50,12 +50,7 @@ lens_alloc(
     size_t name_len = strnlen(name, optics_name_max_len) + 1;
     if (name_len == optics_name_max_len) return 0;
 
-    size_t total_len = sizeof(struct lens) + name_len + lens_len;
-
-    optics_off_t off = optics_alloc(optics, total_len);
-    if (!off) return NULL;
-
-    struct lens *lens = optics_ptr(optics, off, total_len);
+    struct lens *lens = malloc(sizeof(struct lens) + name_len + lens_len);
     if (!lens) return NULL;
 
     lens->off = off;
@@ -67,27 +62,14 @@ lens_alloc(
     return lens;
 }
 
-static size_t lens_total_len(struct lens *lens)
-{
-    return sizeof(*lens) + lens->name_len + lens->lens_len;
-}
-
 static void lens_free(struct optics *optics, struct lens *lens)
 {
-    optics_free(optics, lens->off, lens_total_len(lens));
+    free(lens);
 }
 
 static bool lens_defer_free(struct optics *optics, struct lens *lens)
 {
-    return optics_defer_free(optics, lens->off, lens_total_len(lens));
-}
-
-static struct lens *lens_ptr(struct optics *optics, optics_off_t off)
-{
-    struct lens *lens = optics_ptr(optics, off, sizeof(*lens));
-    if (optics_unlikely(!lens)) return NULL;
-
-    return optics_ptr(optics, off, lens_total_len(lens));
+    return optics_defer_free(optics, lens);
 }
 
 static void * lens_sub_ptr(struct lens *lens, enum optics_lens_type type)
@@ -110,11 +92,6 @@ static double lens_rescale(const struct optics_poll *poll, double value)
 // interface
 // -----------------------------------------------------------------------------
 
-static optics_off_t lens_off(struct lens *lens)
-{
-    return lens->off;
-}
-
 static enum optics_lens_type lens_type(struct lens *lens)
 {
     return lens->type;
@@ -122,8 +99,7 @@ static enum optics_lens_type lens_type(struct lens *lens)
 
 static const char * lens_name(struct lens *lens)
 {
-    size_t offset = sizeof(struct lens) + lens->lens_len;
-    return (const char *) (((uint8_t *) lens) + offset);
+    return lens_name_ptr(lens);
 }
 
 static optics_off_t lens_next(struct lens *lens)
@@ -137,34 +113,31 @@ static optics_off_t lens_next(struct lens *lens)
 
 // Should be called while holding the optics->lock which makes manipulating the
 // prev pointers safe.
-static void lens_set_next(struct optics *optics, struct lens *lens, optics_off_t next)
+static void lens_set_next(struct optics *optics, struct lens *lens, struct lens *next)
 {
     atomic_init(&lens->next, next);
     if (!next) return;
 
-    struct lens* next_node = lens_ptr(optics, next);
-    optics_assert(!next_node->prev, "adding node not in a list: next=%p", (void *) next);
-    lens_ptr(optics, next)->prev = lens->off;
+    optics_assert(!next->prev, "adding node not in a list: next=%p", (void *) next);
+    next->prev = lens;
 }
 
 // Should be called while holding the optics->lock which makes manipulating the
 // prev pointers safe. See lens_next for details on memory ordering.
 static void lens_kill(struct optics *optics, struct lens *lens)
 {
-    optics_off_t next_off = atomic_load(&lens->next);
-
-    if (next_off) {
-        struct lens *next = lens_ptr(optics, next_off);
-        optics_assert(next->prev == lens->off, "corrupted lens list: %p != %p",
-                (void *) next->prev, (void *) lens->off);
+    struct lens *next = atomic_load(&lens->next);
+    if (next) {
+        optics_assert(next->prev == lens, "corrupted lens list: %p != %p",
+                (void *) next->prev, (void *) lens);
         next->prev = lens->prev;
     }
 
-    if (lens->prev) {
-        struct lens *prev = lens_ptr(optics, lens->prev);
-        optics_assert(prev->next == lens->off, "corrupted lens list: %p != %p",
-                (void *) prev->next, (void *) lens->off);
-        atomic_store_explicit(&prev->next, next_off, memory_order_relaxed);
+    struct lens *prev = lens->prev;
+    if (prev) {
+        optics_assert(prev->next == lens, "corrupted lens list: %p != %p",
+                (void *) prev->next, (void *) lens);
+        atomic_store_explicit(&prev->next, next, memory_order_relaxed);
     }
 }
 

@@ -127,7 +127,7 @@ optics_pc(optics_static)
 
 if(CMOCKA_FOUND)
     add_library(optics_tests STATIC test/bench.c test/test.c)
-    set(OPTICS_TESTS_DEPS optics_tests ${OPTICS_POLLER_DEPS} ${CMOCKA_LIBRARIES})
+    set(OPTICS_TESTS_DEPS optics_tests ${OPTICS_DEPS} ${CMOCKA_LIBRARIES})
 endif()
 
 

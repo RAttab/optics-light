@@ -3,6 +3,7 @@
 set -o errexit -o nounset -o pipefail -o xtrace
 
 : ${PREFIX:="."}
+: ${INSTALL:="."}
 
 declare -a SRC
 SRC=( optics
@@ -39,6 +40,8 @@ BENCH=( timer
         lens_histo
         lens_quantile )
 
+PKG_CONFIGS=( optics optics_static )
+
 CC=${OTHERC:-gcc}
 
 CFLAGS="-g -O3 -march=native -pipe -std=gnu11 -D_GNU_SOURCE -pthread"
@@ -72,9 +75,23 @@ for test in "${TEST[@]}"; do
     $CC -o "test_${test}" "${PREFIX}/test/${test}_test.c" "$LIB" $CFLAGS $DEPS
 done
 
-do_install() {
-    mv "$LIB" ./bin
+version() {
+    local dir="--git-dir ${PREFIX}"
+    git $dir describe --tags --exact-match 2> /dev/null \
+        || git $dir symbolic-ref -q --short HEAD 2> /dev/null \
+        || git $dir rev-parse --short HEAD
+}
 
+do_install() {
+    mv "$LIB" "${INSTALL}/bin"
+
+    export pc_prefix="${INSTALL}"
+    export pc_version="$(version)"
+    for pc in "${SRC[@}"; do
+        envsubst '$$pc_prefix' '$$pc_version' \
+                 <"${PREFIX}/src/${pc}.pc.in" \
+                 >"${INSTALL}/share/pkgconfig/${pc}.pc"
+    done
 }
 
 do_test() {
@@ -100,21 +117,15 @@ do_bench() {
 while [[ $# -gt 0 ]]; do
     arg=$1
     case $arg in
-        install)
-            do_install && shift;;
-
-        test)
-            do_test && shift ;;
-
-        valgrind)
-            do_valgrind && shift ;;
-
-        bench)
-            do_bench && shift ;;
-
+        install) do_install ;;
+        test) do_test ;;
+        valgrind) do_valgrind ;;
+        bench) do_bench ;;
         *)
             echo "unknown argument '$arg'"
             exit 1
            ;;
     esac
+
+    shift
 done

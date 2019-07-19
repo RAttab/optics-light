@@ -32,7 +32,6 @@
     void name(optics_unused void **test_state)          \
     {                                                   \
         optics_unused const char * test_name = #name;   \
-        optics_unlink_all();                            \
         do
 
 #define optics_test_tail()                      \
@@ -70,13 +69,6 @@ bool assert_htable_equal_impl(
         size_t len = sizeof(exp) / sizeof(struct htable_bucket);        \
         assert_true(assert_htable_equal_impl(set, exp, len, eps));  \
     } while (false)
-
-// -----------------------------------------------------------------------------
-// utils
-// -----------------------------------------------------------------------------
-
-struct optics *optics_create_idx_at(
-        const char *base, size_t index, optics_ts_t ts);
 
 
 // -----------------------------------------------------------------------------

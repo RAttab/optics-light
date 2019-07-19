@@ -5,4 +5,4 @@ Name: Optics static library
 Description: Metrics gathering library
 Version: $pc_version
 Cflags: -I${includedir}
-Libs: -loptics_static -lrt -lbsd
+Libs: -loptics_static -lrt -lbsd -lmicrohttpd

@@ -22,24 +22,24 @@
 // open/close
 // -----------------------------------------------------------------------------
 
-optics_test_head(lens_counter_open_close_test)
+optics_test_head(lens_counter_create_test)
 {
     struct optics *optics = optics_create(test_name);
     const char *lens_name = "my_counter";
 
     for (size_t i = 0; i < 3; ++i) {
-        struct optics_lens *lens = optics_counter_alloc(optics, lens_name);
+        struct optics_lens *lens = optics_counter_create(optics, lens_name);
         if (!lens) optics_abort();
 
         assert_int_equal(optics_lens_type(lens), optics_counter);
         assert_string_equal(optics_lens_name(lens), lens_name);
 
-        assert_null(optics_counter_alloc(optics, lens_name));
+        assert_null(optics_counter_create(optics, lens_name));
         optics_lens_close(lens);
-        assert_null(optics_counter_alloc(optics, lens_name));
+        assert_null(optics_counter_create(optics, lens_name));
 
         assert_non_null(lens = optics_lens_get(optics, lens_name));
-        optics_lens_free(lens);
+        optics_lens_close(lens);
     }
 
     optics_close(optics);
@@ -51,25 +51,24 @@ optics_test_tail()
 // alloc_get
 // -----------------------------------------------------------------------------
 
-optics_test_head(lens_counter_alloc_get_test)
+optics_test_head(lens_counter_open_test)
 {
     struct optics *optics = optics_create(test_name);
     const char *lens_name = "blah";
 
     for (size_t i = 0; i < 3; ++i) {
-        struct optics_lens *l0 = optics_counter_alloc_get(optics, lens_name);
+        struct optics_lens *l0 = optics_counter_open(optics, lens_name);
         if (!l0) optics_abort();
         optics_counter_inc(l0, 1);
 
-        struct optics_lens *l1 = optics_counter_alloc_get(optics, lens_name);
+        struct optics_lens *l1 = optics_counter_open(optics, lens_name);
         if (!l1) optics_abort();
         optics_counter_inc(l1, 1);
 
         optics_epoch_t epoch = optics_epoch_inc(optics);
         assert_read(l0, epoch, 2);
 
-        optics_lens_close(l0);
-        optics_lens_free(l1);
+        optics_lens_close(l1);
     }
 
     optics_close(optics);
@@ -84,7 +83,7 @@ optics_test_tail()
 optics_test_head(lens_counter_record_read_test)
 {
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *lens = optics_counter_alloc(optics, "my_counter");
+    struct optics_lens *lens = optics_counter_create(optics, "my_counter");
 
     optics_epoch_t epoch = optics_epoch(optics);
 
@@ -128,8 +127,8 @@ optics_test_tail()
 optics_test_head(lens_counter_merge_test)
 {
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *l0 = optics_counter_alloc(optics, "l0");
-    struct optics_lens *l1 = optics_counter_alloc(optics, "l1");
+    struct optics_lens *l0 = optics_counter_create(optics, "l0");
+    struct optics_lens *l1 = optics_counter_create(optics, "l1");
     optics_epoch_t epoch = optics_epoch(optics);
 
     {
@@ -182,7 +181,7 @@ optics_test_head(lens_counter_type_test)
     optics_epoch_t epoch = optics_epoch(optics);
 
     {
-        struct optics_lens *lens = optics_gauge_alloc(optics, lens_name);
+        struct optics_lens *lens = optics_gauge_create(optics, lens_name);
 
         assert_false(optics_counter_inc(lens, 1));
         assert_int_equal(optics_counter_read(lens, epoch, &value), optics_err);
@@ -212,7 +211,7 @@ optics_test_tail()
 optics_test_head(lens_counter_epoch_st_test)
 {
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *lens = optics_counter_alloc(optics, "my_counter");
+    struct optics_lens *lens = optics_counter_create(optics, "my_counter");
 
     for (size_t i = 1; i < 5; ++i) {
         optics_epoch_t epoch = optics_epoch_inc(optics);
@@ -286,7 +285,7 @@ optics_test_head(lens_counter_epoch_mt_test)
 {
     assert_mt();
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *lens = optics_counter_alloc(optics, "my_counter");
+    struct optics_lens *lens = optics_counter_create(optics, "my_counter");
 
     struct epoch_test data = {
         .optics = optics,
@@ -308,8 +307,8 @@ optics_test_tail()
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(lens_counter_open_close_test),
-        cmocka_unit_test(lens_counter_alloc_get_test),
+        cmocka_unit_test(lens_counter_create_test),
+        cmocka_unit_test(lens_counter_open_test),
         cmocka_unit_test(lens_counter_record_read_test),
         cmocka_unit_test(lens_counter_merge_test),
         cmocka_unit_test(lens_counter_type_test),

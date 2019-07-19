@@ -28,7 +28,6 @@ TEST=( timer
        poller_lens
        backend_carbon
        backend_rest
-       crest_path
        crest )
 
 BENCH=( timer
@@ -43,6 +42,7 @@ BENCH=( timer
 PKG_CONFIGS=( optics optics_static )
 
 CC=${OTHERC:-gcc}
+AR=${OTHERC:-ar}
 
 CFLAGS="-g -O3 -march=native -pipe -std=gnu11 -D_GNU_SOURCE -pthread"
 CFLAGS="$CFLAGS -I${PREFIX}/src"
@@ -61,25 +61,27 @@ CFLAGS="$CFLAGS -fno-strict-aliasing"
 CFLAGS="$CFLAGS -Wno-implicit-fallthrough"
 
 LIB="liboptics.a"
-DEPS="-lbsd -llibmicrohttpd"
+DEPS="-lbsd -lmicrohttpd"
 
 OBJ=""
 for src in "${SRC[@]}"; do
     mkdir -p $(dirname $src)
-    $CC -c -o "$src.o" "${PREFIX}/src/$src.c" $CFLAGS $DEPS
+    "$CC" -c -o "$src.o" "${PREFIX}/src/$src.c" $CFLAGS
     OBJ="$OBJ $src.o"
 done
-ar rcs "$LIB" $OBJ
+"$AR" rcs "$LIB" $OBJ
+
+$CC -c -o test.o "${PREFIX}/test/test.c" $CFLAGS
+TEST_DEPS="test.o $LIB $DEPS -lcmocka"
 
 for test in "${TEST[@]}"; do
-    $CC -o "test_${test}" "${PREFIX}/test/${test}_test.c" "$LIB" $CFLAGS $DEPS
+    "$CC" -o "test_${test}" "${PREFIX}/test/${test}_test.c" $CFLAGS $TEST_DEPS
 done
 
 version() {
-    local dir="--git-dir ${PREFIX}"
-    git $dir describe --tags --exact-match 2> /dev/null \
-        || git $dir symbolic-ref -q --short HEAD 2> /dev/null \
-        || git $dir rev-parse --short HEAD
+    git --git-dir "${PREFIX}" describe --tags --exact-match 2> /dev/null \
+        || git --git-dir "${PREFIX}" symbolic-ref -q --short HEAD 2> /dev/null \
+        || git --git-dir "${PREFIX}" rev-parse --short HEAD
 }
 
 do_install() {
@@ -95,7 +97,11 @@ do_install() {
 }
 
 do_test() {
+    $CC -c -o test.o "${PREFIX}/test/test.c" $CFLAGS
+    TEST_DEPS="test.o $LIB $DEPS -lcmocka"
+
     for test in "${TEST[@]}"; do
+        "$CC" -o "test_${test}" "${PREFIX}/test/${test}_test.c" $CFLAGS $TEST_DEPS
         "./test_${test}"
     done
 }
@@ -107,8 +113,11 @@ do_valgrind() {
 }
 
 do_bench() {
+    $CC -c -o bench.o "${PREFIX}/test/bench.c" $CFLAGS
+    BENCH_DEPS="bench.o $LIB $DEPS"
+
     for bench in "${BENCH[@]}"; do
-        $CC -o "bench_${bench}" "${PREFIX}/test/${bench}_bench.c" "$LIB" $CFLAGS $DEPS
+        "$CC" -o "bench_${bench}" "${PREFIX}/test/${bench}_bench.c" $CFLAGS $BENCH_DEPS
         "./bench_${bench}"
     done
 }

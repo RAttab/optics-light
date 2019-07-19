@@ -54,14 +54,14 @@ optics_test_head(backend_carbon_internal_test)
     struct optics *optics = optics_create(test_name);
     optics_set_prefix(optics, "prefix");
 
-    struct optics_lens *counter = optics_counter_alloc(optics, "counter");
-    struct optics_lens *gauge = optics_gauge_alloc(optics, "gauge");
-    struct optics_lens *dist = optics_dist_alloc(optics, "dist");
+    struct optics_lens *counter = optics_counter_create(optics, "counter");
+    struct optics_lens *gauge = optics_gauge_create(optics, "gauge");
+    struct optics_lens *dist = optics_dist_create(optics, "dist");
     const uint64_t buckets[] = {1, 2, 3};
-    struct optics_lens *histo = optics_histo_alloc(optics, "histo", buckets, 3);
-    struct optics_lens *quantile = optics_quantile_alloc(optics, "quantile", 0.9, 50, 0);
+    struct optics_lens *histo = optics_histo_create(optics, "histo", buckets, 3);
+    (void) optics_quantile_create(optics, "quantile", 0.9, 50, 0);
 
-    struct optics_poller *poller = optics_poller_alloc();
+    struct optics_poller *poller = optics_poller_alloc(optics);
     optics_poller_set_host(poller, "host");
     optics_dump_carbon(poller, "127.0.0.1", port);
 
@@ -97,11 +97,6 @@ optics_test_head(backend_carbon_internal_test)
     }
 
     optics_poller_free(poller);
-    optics_lens_close(counter);
-    optics_lens_close(gauge);
-    optics_lens_close(dist);
-    optics_lens_close(histo);
-    optics_lens_close(quantile);
     optics_close(optics);
     carbon_stop(carbon);
 }
@@ -124,9 +119,9 @@ optics_test_head(backend_carbon_external_test)
     struct optics *optics = optics_create(test_name);
     optics_set_prefix(optics, "prefix");
 
-    struct optics_lens *lens = optics_dist_alloc(optics, "blah");
+    struct optics_lens *lens = optics_dist_create(optics, "blah");
 
-    struct optics_poller *poller = optics_poller_alloc();
+    struct optics_poller *poller = optics_poller_alloc(optics);
     optics_poller_set_host(poller, "host");
     optics_dump_carbon(poller, "127.0.0.1", "2003");
 

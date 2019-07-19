@@ -19,13 +19,13 @@ optics_test_head(backend_rest_basics_test)
     struct optics *optics = optics_create(test_name);
     optics_set_prefix(optics, "optics.tests");
 
-    struct optics_lens *counter = optics_counter_alloc(optics, "counter");
-    struct optics_lens *gauge = optics_gauge_alloc(optics, "gauge");
-    struct optics_lens *dist = optics_dist_alloc(optics, "dist");
-    struct optics_lens *quantile = optics_quantile_alloc(optics, "quantile", .9, 50, 0.05);
+    struct optics_lens *counter = optics_counter_create(optics, "counter");
+    struct optics_lens *gauge = optics_gauge_create(optics, "gauge");
+    struct optics_lens *dist = optics_dist_create(optics, "dist");
+    struct optics_lens *quantile = optics_quantile_create(optics, "quantile", .9, 50, 0.05);
 
     struct crest *crest = crest_new();
-    struct optics_poller *poller = optics_poller_alloc();
+    struct optics_poller *poller = optics_poller_alloc(optics);
     optics_dump_rest(poller, crest);
     crest_bind(crest, port);
 
@@ -43,10 +43,6 @@ optics_test_head(backend_rest_basics_test)
 
     crest_free(crest);
     optics_poller_free(poller);
-    optics_lens_close(dist);
-    optics_lens_close(gauge);
-    optics_lens_close(counter);
-    optics_lens_close(quantile);
     optics_close(optics);
 }
 optics_test_tail()

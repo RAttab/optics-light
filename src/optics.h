@@ -101,15 +101,14 @@ enum optics_ret
 struct optics_lens * optics_lens_get(struct optics *, const char *name);
 enum optics_lens_type optics_lens_type(struct optics_lens *);
 const char * optics_lens_name(struct optics_lens *);
-void optics_lens_close(struct optics_lens *);
-bool optics_lens_free(struct optics_lens *);
+bool optics_lens_close(struct optics_lens *);
 
-struct optics_lens * optics_counter_alloc(struct optics *, const char *name);
-struct optics_lens * optics_counter_alloc_get(struct optics *, const char *name);
+struct optics_lens * optics_counter_create(struct optics *, const char *name);
+struct optics_lens * optics_counter_open(struct optics *, const char *name);
 bool optics_counter_inc(struct optics_lens *, int64_t value);
 
-struct optics_lens * optics_gauge_alloc(struct optics *, const char *name);
-struct optics_lens * optics_gauge_alloc_get(struct optics *, const char *name);
+struct optics_lens * optics_gauge_create(struct optics *, const char *name);
+struct optics_lens * optics_gauge_open(struct optics *, const char *name);
 bool optics_gauge_set(struct optics_lens *, double value);
 
 struct optics_dist
@@ -122,8 +121,8 @@ struct optics_dist
     double samples[optics_dist_samples];
 };
 
-struct optics_lens * optics_dist_alloc(struct optics *, const char *name);
-struct optics_lens * optics_dist_alloc_get(struct optics *, const char *name);
+struct optics_lens * optics_dist_create(struct optics *, const char *name);
+struct optics_lens * optics_dist_open(struct optics *, const char *name);
 bool optics_dist_record(struct optics_lens *, double value);
 
 struct optics_histo
@@ -135,9 +134,9 @@ struct optics_histo
     size_t counts[optics_histo_buckets_max];
 };
 
-struct optics_lens * optics_histo_alloc(
+struct optics_lens * optics_histo_create(
         struct optics *, const char *name, const uint64_t *buckets, size_t buckets_len);
-struct optics_lens * optics_histo_alloc_get(
+struct optics_lens * optics_histo_open(
         struct optics *, const char *name, const uint64_t *buckets, size_t buckets_len);
 bool optics_histo_inc(struct optics_lens *, double value);
 
@@ -149,9 +148,9 @@ struct optics_quantile
     size_t count;
 };
 
-struct optics_lens * optics_quantile_alloc(
+struct optics_lens * optics_quantile_create(
     struct optics *, const char *name, double quantile, double estimate, double adjustment_value);
-struct optics_lens * optics_quantile_alloc_get(
+struct optics_lens * optics_quantile_open(
     struct optics *, const char *name, double quantile, double estimate, double adjustment_value);
 bool optics_quantile_update(struct optics_lens *, double value);
 

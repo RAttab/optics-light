@@ -25,7 +25,7 @@ struct optics_lens
     // Allign to a cache line to avoid alignment issues in the lens itself.
     // This can have a big impact as some lenses would otherwise do atomic
     // operations across cache lines which is atrociously slow.
-    uint8_t padding[28];
+    uint8_t padding[cache_line_len - 44];
 };
 
 static_assert(sizeof(struct optics_lens) % 64 == 0,

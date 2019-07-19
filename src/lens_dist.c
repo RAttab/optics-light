@@ -7,7 +7,7 @@
 // struct
 // -----------------------------------------------------------------------------
 
-struct optics_packed lens_dist_epoch
+struct lens_dist_epoch
 {
     struct slock lock;
 
@@ -16,7 +16,7 @@ struct optics_packed lens_dist_epoch
     double samples[optics_dist_samples];
 };
 
-struct optics_packed lens_dist
+struct lens_dist
 {
     struct lens_dist_epoch epochs[2];
 };
@@ -27,7 +27,7 @@ struct optics_packed lens_dist
 // -----------------------------------------------------------------------------
 
 
-static struct lens *
+static struct optics_lens *
 lens_dist_alloc(struct optics *optics, const char *name)
 {
     return lens_alloc(optics, optics_dist, sizeof(struct lens_dist), name);
@@ -36,7 +36,7 @@ lens_dist_alloc(struct optics *optics, const char *name)
 static bool
 lens_dist_record(struct optics_lens* lens, optics_epoch_t epoch, double value)
 {
-    struct lens_dist *dist_head = lens_sub_ptr(lens->lens, optics_dist);
+    struct lens_dist *dist_head = lens_sub_ptr(lens, optics_dist);
     if (!dist_head) return false;
 
     struct lens_dist_epoch *dist = &dist_head->epochs[epoch];
@@ -138,7 +138,7 @@ static size_t lens_dist_merge(
 static enum optics_ret
 lens_dist_read(struct optics_lens *lens, optics_epoch_t epoch, struct optics_dist *value)
 {
-    struct lens_dist *dist_head = lens_sub_ptr(lens->lens, optics_dist);
+    struct lens_dist *dist_head = lens_sub_ptr(lens, optics_dist);
     if (!dist_head) return optics_err;
 
     struct lens_dist_epoch *dist = &dist_head->epochs[epoch];

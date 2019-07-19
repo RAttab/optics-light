@@ -64,6 +64,8 @@ CFLAGS="$CFLAGS -Wno-implicit-fallthrough"
 LIB="liboptics.a"
 DEPS="-lbsd -lmicrohttpd"
 
+export CMOCKA_TEST_ABORT=1
+
 if [[ $OPTICS_LOG = 1 ]]; then
     CFLAGS="$CFLAGS -DOPTICS_LOG"
 elif [[ $OPTICS_LOG = ring ]]; then

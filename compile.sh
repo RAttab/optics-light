@@ -71,12 +71,12 @@ for src in "${SRC[@]}"; do
 done
 "$AR" rcs "$LIB" $OBJ
 
-$CC -c -o test.o "${PREFIX}/test/test.c" $CFLAGS
+"$CC" -c -o test.o "${PREFIX}/test/test.c" $CFLAGS
 TEST_DEPS="test.o $LIB $DEPS -lcmocka"
 
-for test in "${TEST[@]}"; do
-    "$CC" -o "test_${test}" "${PREFIX}/test/${test}_test.c" $CFLAGS $TEST_DEPS
-done
+"$CC" -c -o bench.o "${PREFIX}/test/bench.c" $CFLAGS
+BENCH_DEPS="bench.o $LIB $DEPS"
+
 
 version() {
     git --git-dir "${PREFIX}" describe --tags --exact-match 2> /dev/null \
@@ -96,9 +96,14 @@ do_install() {
     done
 }
 
+test_name() {
+    echo "$1" | sed -r "s/test_([a-z]*)/\1/"
+}
+
 do_test() {
-    $CC -c -o test.o "${PREFIX}/test/test.c" $CFLAGS
-    TEST_DEPS="test.o $LIB $DEPS -lcmocka"
+    if [[ $1 =~ test_.* ]]; then
+        TEST=( $(test_name "$1") )
+    fi
 
     for test in "${TEST[@]}"; do
         "$CC" -o "test_${test}" "${PREFIX}/test/${test}_test.c" $CFLAGS $TEST_DEPS
@@ -107,14 +112,20 @@ do_test() {
 }
 
 do_valgrind() {
+    if [[ $1 =~ valgrind_.* ]]; then
+        TEST=( $(test_name "$1") )
+    fi
+
     for test in "${TEST[@]}"; do
+        "$CC" -o "test_${test}" "${PREFIX}/test/${test}_test.c" $CFLAGS $TEST_DEPS
         valgrind --leak-check=full --track-origins=yes "./test_${test}"
     done
 }
 
 do_bench() {
-    $CC -c -o bench.o "${PREFIX}/test/bench.c" $CFLAGS
-    BENCH_DEPS="bench.o $LIB $DEPS"
+    if [[ $1 =~ bench_.* ]]; then
+        BENCH=( $(test_name "$1") )
+    fi
 
     for bench in "${BENCH[@]}"; do
         "$CC" -o "bench_${bench}" "${PREFIX}/test/${bench}_bench.c" $CFLAGS $BENCH_DEPS
@@ -127,9 +138,16 @@ while [[ $# -gt 0 ]]; do
     arg=$1
     case $arg in
         install) do_install ;;
-        test) do_test ;;
-        valgrind) do_valgrind ;;
-        bench) do_bench ;;
+
+        tests) do_test all ;;
+        test_*) do_test $arg ;;
+
+        valgrinds) do_valgrind all ;;
+        valgrind_*) do_valgrind $arg ;;
+
+        benches) do_bench all ;;
+        bench_*) do_bench $arg ;;
+
         *)
             echo "unknown argument '$arg'"
             exit 1

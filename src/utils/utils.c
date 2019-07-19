@@ -11,7 +11,6 @@
 #include "time.h"
 #include "rng.h"
 #include "lock.h"
-#include "shm.h"
 #include "htable.h"
 #include "socket.h"
 
@@ -37,7 +36,6 @@
 #include "time.c"
 #include "rng.c"
 #include "key.c"
-#include "shm.c"
 #include "htable.c"
 #include "socket.c"
 #include "buffer.c"

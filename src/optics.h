@@ -240,7 +240,7 @@ bool optics_poll_normalize(
 
 struct optics_poller;
 
-struct optics_poller * optics_poller_alloc();
+struct optics_poller * optics_poller_alloc(struct optics *);
 void optics_poller_free(struct optics_poller *);
 
 enum optics_poll_type

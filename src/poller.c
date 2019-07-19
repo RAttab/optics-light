@@ -6,7 +6,6 @@
 #include "optics_priv.h"
 #include "utils/errors.h"
 #include "utils/time.h"
-#include "utils/shm.h"
 #include "utils/log.h"
 #include "utils/socket.h"
 #include "utils/htable.h"
@@ -39,8 +38,10 @@ struct backend
 
 struct optics_poller
 {
+    struct optics *optics;
+
     char host[optics_name_max_len];
-    
+
     size_t backends_len;
     struct backend backends[poller_max_backends];
 };
@@ -51,14 +52,15 @@ struct optics_poller
 // -----------------------------------------------------------------------------
 
 
-struct optics_poller * optics_poller_alloc()
+struct optics_poller * optics_poller_alloc(struct optics *optics)
 {
     struct optics_poller *poller = calloc(1, sizeof(*poller));
     optics_assert_alloc(poller);
 
 
-    if (!hostname(poller->host, sizeof(poller->host))) goto fail_host; 
-    
+    if (!hostname(poller->host, sizeof(poller->host))) goto fail_host;
+    poller->optics = optics;
+
     return poller;
 
   fail_host:

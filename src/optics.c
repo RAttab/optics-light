@@ -10,7 +10,6 @@
 #include "utils/htable.h"
 #include "utils/lock.h"
 #include "utils/rng.h"
-#include "utils/shm.h"
 #include "utils/time.h"
 #include "utils/bits.h"
 #include "utils/log.h"

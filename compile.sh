@@ -4,6 +4,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 
 : ${PREFIX:="."}
 : ${INSTALL:="."}
+: ${OPTICS_LOG:=""}
 
 declare -a SRC
 SRC=( optics
@@ -44,7 +45,7 @@ PKG_CONFIGS=( optics optics_static )
 CC=${OTHERC:-gcc}
 AR=${OTHERC:-ar}
 
-CFLAGS="-g -O3 -march=native -pipe -std=gnu11 -D_GNU_SOURCE -pthread"
+CFLAGS="-ggdb -O3 -march=native -pipe -std=gnu11 -D_GNU_SOURCE -pthread"
 CFLAGS="$CFLAGS -I${PREFIX}/src"
 
 CFLAGS="$CFLAGS -Werror -Wall -Wextra"
@@ -62,6 +63,12 @@ CFLAGS="$CFLAGS -Wno-implicit-fallthrough"
 
 LIB="liboptics.a"
 DEPS="-lbsd -lmicrohttpd"
+
+if [[ $OPTICS_LOG = 1 ]]; then
+    CFLAGS="$CFLAGS -DOPTICS_LOG"
+elif [[ $OPTICS_LOG = ring ]]; then
+    CFLAGS="$CFLAGS -DOPTICS_LOG -DOPTICS_LOG_RING=1"
+fi
 
 OBJ=""
 for src in "${SRC[@]}"; do

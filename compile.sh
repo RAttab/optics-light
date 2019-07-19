@@ -84,6 +84,8 @@ TEST_DEPS="test.o $LIB $DEPS -lcmocka"
 "$CC" -c -o bench.o "${PREFIX}/test/bench.c" $CFLAGS
 BENCH_DEPS="bench.o $LIB $DEPS"
 
+"$CC" -c -o example "${PREFIX}/test/example.c" $DEPS $CFLAGS
+
 
 version() {
     git --git-dir "${PREFIX}" describe --tags --exact-match 2> /dev/null \

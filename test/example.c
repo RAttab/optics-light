@@ -18,22 +18,21 @@ int main(void)
 
     // Gauges will emit the same value until it is changed or removed.
     {
-        struct optics_lens *lens = optics_gauge_alloc(optics, "my_gauge");
+        struct optics_lens *lens = optics_gauge_create(optics, "my_gauge");
 
         optics_gauge_set(lens, 12.3);
-
-        optics_lens_close(lens);
     }
 
-    // optics_lens_free removes the lens entirely.
+    // lenses are owned by optics so you don't have to close them unless you no
+    // longer need them. The lens can be re-opened via the the open functions.
     {
-        struct optics_lens *lens = optics_lens_get(optics, "my_gauge");
-        optics_lens_free(lens);
+        struct optics_lens *lens = optics_gauge_open(optics, "my_gauge");
+        optics_lens_close(lens);
     }
 
     // Counters are used to calculate the rate of events per second.
     {
-        struct optics_lens *lens = optics_counter_alloc(optics, "my_counter");
+        struct optics_lens *lens = optics_counter_create(optics, "my_counter");
 
         optics_counter_inc(lens, 1);
         optics_counter_inc(lens, 10);
@@ -44,7 +43,7 @@ int main(void)
 
     // the streaming quantile lens is good for estimating the desired quantile value.
     {
-        struct optics_lens *lens = optics_quantile_alloc(optics, "my_quantile", 0.90, 50, 0.05);
+        struct optics_lens *lens = optics_quantile_create(optics, "my_quantile", 0.90, 50, 0.05);
 
         for(int i = 0; i < 1000; i++){
             for (int j = 0; j < 100; j++){
@@ -52,19 +51,17 @@ int main(void)
             }
         }
 
-    optics_lens_close(lens);
+        optics_lens_close(lens);
     }
 
 
     // Distributions are used the calculate quantile approximations over a set
     // of recorded values.
     {
-        struct optics_lens *lens = optics_dist_alloc(optics, "my_distribution");
+        struct optics_lens *lens = optics_dist_create(optics, "my_distribution");
 
         optics_dist_record(lens, 12.3);
         optics_dist_record(lens, 23.5);
-
-        optics_lens_close(lens);
     }
 
     // optics_timer_start and optics_timer_elapsed can be used to record the
@@ -74,7 +71,7 @@ int main(void)
     // Note that the accuracy of the timer may suffer if the recorded latency
     // falls below a micro-second.
     {
-        struct optics_lens *lens = optics_lens_get(optics, "my_distribution");
+        struct optics_lens *lens = optics_dist_open(optics, "my_distribution");
 
         optics_timer_t t0;
         optics_timer_start(&t0);
@@ -93,12 +90,12 @@ int main(void)
 
         // foo.bar
         size_t old = optics_key_push(&key, "bar");
-        struct optics_lens *bar = optics_gauge_alloc(optics, key.data);
+        struct optics_lens *bar = optics_gauge_create(optics, key.data);
         optics_key_pop(&key, old);
 
         // foo.baz
         optics_key_push(&key, "baz");
-        struct optics_lens *baz = optics_gauge_alloc(optics, key.data);
+        struct optics_lens *baz = optics_gauge_create(optics, key.data);
 
         optics_lens_close(bar);
         optics_lens_close(baz);

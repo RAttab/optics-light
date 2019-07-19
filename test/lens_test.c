@@ -58,8 +58,6 @@ optics_test_head(lens_basics_st_test)
             assert_non_null(lens);
             assert_int_equal(optics_lens_type(lens), optics_counter);
             assert_string_equal(optics_lens_name(lens), name);
-
-            optics_lens_close(lens);
         }
 
         for (size_t i = 0; i < n; ++i) {

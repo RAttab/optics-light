@@ -35,8 +35,6 @@ optics_test_head(lens_counter_create_test)
         assert_string_equal(optics_lens_name(lens), lens_name);
 
         assert_null(optics_counter_create(optics, lens_name));
-        optics_lens_close(lens);
-        assert_null(optics_counter_create(optics, lens_name));
 
         assert_non_null(lens = optics_lens_get(optics, lens_name));
         optics_lens_close(lens);
@@ -185,8 +183,6 @@ optics_test_head(lens_counter_type_test)
 
         assert_false(optics_counter_inc(lens, 1));
         assert_int_equal(optics_counter_read(lens, epoch, &value), optics_err);
-
-        optics_lens_close(lens);
     }
 
 

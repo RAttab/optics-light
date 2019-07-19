@@ -102,8 +102,6 @@ void run_basics_mt(size_t thread_id, void *ctx)
             assert_non_null(lens);
             assert_int_equal(optics_lens_type(lens), optics_counter);
             assert_string_equal(optics_lens_name(lens), name);
-
-            optics_lens_close(lens);
         }
 
         for (size_t i = 0; i < n; ++i) {

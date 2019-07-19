@@ -34,8 +34,6 @@ optics_test_head(lens_gauge_create_test)
         assert_string_equal(optics_lens_name(lens), lens_name);
 
         assert_null(optics_gauge_create(optics, lens_name));
-        optics_lens_close(lens);
-        assert_null(optics_gauge_create(optics, lens_name));
 
         assert_non_null(lens = optics_lens_get(optics, lens_name));
         optics_lens_close(lens);
@@ -159,8 +157,6 @@ optics_test_head(lens_gauge_type_test)
 
         assert_false(optics_gauge_set(lens, 1));
         assert_int_equal(optics_gauge_read(lens, epoch, &value), optics_err);
-
-        optics_lens_close(lens);
     }
 
     {

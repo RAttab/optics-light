@@ -22,8 +22,6 @@ optics_test_head(lens_quantile_create_test)
         assert_string_equal(optics_lens_name(lens), lens_name);
 
         assert_null(optics_quantile_create(optics, lens_name, 0.99, 0, 0.05));
-        optics_lens_close(lens);
-        assert_null(optics_quantile_create(optics, lens_name, 0.99, 0, 0.05));
 
         assert_non_null(lens = optics_lens_get(optics, lens_name));
         optics_lens_close(lens);

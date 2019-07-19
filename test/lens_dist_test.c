@@ -53,8 +53,6 @@ optics_test_head(lens_dist_create_test)
         assert_string_equal(optics_lens_name(lens), lens_name);
 
         assert_null(optics_dist_create(optics, lens_name));
-        optics_lens_close(lens);
-        assert_null(optics_dist_create(optics, lens_name));
 
         assert_non_null(lens = optics_lens_get(optics, lens_name));
         optics_lens_close(lens);
@@ -81,12 +79,12 @@ optics_test_head(lens_dist_open_test)
 
         struct optics_lens *l1 = optics_dist_open(optics, lens_name);
         if (!l1) optics_abort();
-        for (size_t j = 1; j <= 50; ++j) optics_dist_record(l0, j + 50);
+        for (size_t j = 50; j <= 100; ++j) optics_dist_record(l1, j);
 
         optics_epoch_t epoch = optics_epoch_inc(optics);
 
         struct optics_dist value = checked_dist_read(l0, epoch);
-        assert_dist_equal(value, 100, 50, 90, 99, 100, 0);
+        assert_dist_equal(value, 101, 50, 90, 99, 100, 0);
 
         optics_lens_close(l1);
     }
@@ -297,10 +295,7 @@ optics_test_head(lens_dist_type_test)
         value = (struct optics_dist) {0};
         assert_false(optics_dist_record(lens, 1));
         assert_int_equal(optics_dist_read(lens, epoch, &value), optics_err);
-
-        optics_lens_close(lens);
     }
-
 
     {
         struct optics_lens *lens = optics_lens_get(optics, lens_name);

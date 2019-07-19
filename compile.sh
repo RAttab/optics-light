@@ -108,7 +108,7 @@ do_install() {
 }
 
 test_name() {
-    echo "$1" | sed -r "s/test_([a-z]*)/\1/"
+    echo "$1" | sed -r "s/test_([a-z_]*)/\1/"
 }
 
 do_test() {

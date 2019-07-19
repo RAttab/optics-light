@@ -138,7 +138,7 @@ bool optics_set_prefix(struct optics *optics, const char *prefix)
 
 static bool optics_defer_free(struct optics *optics, struct optics_lens *ptr)
 {
-    struct optics_defer *node = malloc(sizeof(*node));
+    struct optics_defer *node = calloc(1, sizeof(*node));
     if (!node) return false;
 
     node->ptr = ptr;

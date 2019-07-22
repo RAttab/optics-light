@@ -15,6 +15,7 @@ SRC=( optics
       utils/utils
       utils/crest/crest )
 
+declare -a TEST
 TEST=( timer
        htable
        buffer
@@ -31,6 +32,7 @@ TEST=( timer
        backend_rest
        crest )
 
+declare -a BENCH
 BENCH=( timer
         htable
         lens
@@ -108,7 +110,7 @@ do_install() {
 }
 
 test_name() {
-    echo "$1" | sed -r "s/test_([a-z_]*)/\1/"
+    echo "$1" | sed -r "s/[a-z]*_([a-z_]*)/\1/"
 }
 
 do_test() {
@@ -150,13 +152,13 @@ while [[ $# -gt 0 ]]; do
     case $arg in
         install) do_install ;;
 
-        tests) do_test all ;;
+        test) do_test all ;;
         test_*) do_test $arg ;;
 
-        valgrinds) do_valgrind all ;;
+        valgrind) do_valgrind all ;;
         valgrind_*) do_valgrind $arg ;;
 
-        benches) do_bench all ;;
+        bench) do_bench all ;;
         bench_*) do_bench $arg ;;
 
         *)

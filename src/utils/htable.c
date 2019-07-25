@@ -111,6 +111,8 @@ struct htable_ret htable_put(struct htable *ht, const char *key, uint64_t value)
 
         if (bucket->key) {
             if (strncmp(bucket->key, key, htable_key_max_len)) continue;
+            optics_log("htable_put_val:", "%s", bucket->key);
+            optics_log("htable_put_key:", "%s", key);
             return (struct htable_ret) { .ok = false, .value = bucket->value };
         }
 

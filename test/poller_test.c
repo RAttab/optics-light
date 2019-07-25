@@ -26,7 +26,7 @@ bool backend_normalized_cb(void *ctx_, uint64_t ts, const char *key_suffix, doub
     optics_key_push(&key, ctx->poll->prefix);
     optics_key_push(&key, ctx->poll->host);
     optics_key_push(&key, key_suffix);
-
+    optics_log("htable_put key:", "%s", key_suffix);
     assert_true(htable_put(ctx->keys, key.data, pun_dtoi(value)).ok);
 
     return true;
@@ -70,6 +70,26 @@ optics_test_head(poller_multi_lens_test)
             make_kv("prefix.host.g2", 1.0),
             make_kv("prefix.host.g3", 1.2e-4));
 
+    optics_log("test 1 ok", " ");
+
+    htable_reset(&result);
+    optics_poller_poll_at(poller, ++ts);
+    assert_htable_equal(&result, 0,
+            make_kv("prefix.host.g1", 0.0),
+            make_kv("prefix.host.g2", 1.0),
+            make_kv("prefix.host.g3", 1.2e-4));
+
+    optics_log("test 1b ok", " ");
+
+    htable_reset(&result);
+    optics_poller_poll_at(poller, ++ts);
+    assert_htable_equal(&result, 0,
+            make_kv("prefix.host.g1", 0.0),
+            make_kv("prefix.host.g2", 1.0),
+            make_kv("prefix.host.g3", 1.2e-4));
+
+    optics_log("test 1c ok", " ");
+
     struct optics_lens *g4 = optics_gauge_create(optics, "g4");
     optics_lens_close(g1);
     optics_gauge_set(g2, 2.0);
@@ -82,6 +102,17 @@ optics_test_head(poller_multi_lens_test)
             make_kv("prefix.host.g3", 1.2e-4),
             make_kv("prefix.host.g4", -1.0));
 
+    optics_log("test 2 ok", " ");
+
+        htable_reset(&result);
+    optics_poller_poll_at(poller, ++ts);
+    assert_htable_equal(&result, 0,
+            make_kv("prefix.host.g2", 2.0),
+            make_kv("prefix.host.g3", 1.2e-4),
+            make_kv("prefix.host.g4", -1.0));
+
+    optics_log("test 2b ok", " ");
+
     g1 = optics_gauge_create(optics, "g1");
     optics_gauge_set(g1, 1.0);
 
@@ -92,6 +123,8 @@ optics_test_head(poller_multi_lens_test)
             make_kv("prefix.host.g2", 2.0),
             make_kv("prefix.host.g3", 1.2e-4),
             make_kv("prefix.host.g4", -1.0));
+
+    optics_log("test 3 ok", " ");
 
     optics_lens_close(g1);
     optics_lens_close(g2);

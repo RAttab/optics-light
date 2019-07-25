@@ -246,11 +246,22 @@ enum optics_ret optics_foreach_lens(struct optics *optics, void *ctx, optics_for
     struct optics_lens *lens = pun_itop(atomic_load_explicit(head, memory_order_acquire));
 
     while (lens) {
-        struct optics_lens ol = { .optics = optics };
-        enum optics_ret ret = cb(ctx, &ol);
-        if (ret != optics_ok) return ret;
+      struct optics_lens *ol = calloc(1, sizeof(struct optics_lens) + lens->name_len + lens->lens_len);
+      ol->optics = lens->optics;
+      ol->type = lens->type;
+      ol->lens_len = lens->lens_len;
+      ol->name_len = lens->name_len;
+      memcpy(lens_sub_ptr(ol, ol->type), lens_sub_ptr(lens, lens->type), ol->lens_len);
+      memcpy(lens_name_ptr(ol), lens_name_ptr(lens), ol->name_len - 1);
 
-        lens = lens_next(lens);
+
+      enum optics_ret ret = cb(ctx, ol);
+      //free(lens_name_ptr(ol));
+      //free(lens_sub_ptr(ol, ol->type));
+      free(ol);
+      if (ret != optics_ok) return ret;
+
+      lens = lens_next(lens);
     }
 
     return optics_ok;

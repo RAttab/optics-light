@@ -169,7 +169,7 @@ bool optics_poller_poll_at(struct optics_poller *poller, optics_ts_t ts)
     nsleep(1 * 1000 * 1000);
 
     struct htable values = {0};
-    poller_poll_optics(poller, epoch, ts, last_poll, &values);
+    poller_poll_optics(poller, ts, last_poll, epoch, &values);
 
     poller_backend_record(poller, optics_poll_begin, NULL);
 

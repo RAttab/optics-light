@@ -246,10 +246,8 @@ enum optics_ret optics_foreach_lens(struct optics *optics, void *ctx, optics_for
     struct optics_lens *lens = pun_itop(atomic_load_explicit(head, memory_order_acquire));
 
     while (lens) {
-        struct optics_lens ol = { .optics = optics };
-        enum optics_ret ret = cb(ctx, &ol);
+        enum optics_ret ret = cb(ctx, lens);
         if (ret != optics_ok) return ret;
-
         lens = lens_next(lens);
     }
 

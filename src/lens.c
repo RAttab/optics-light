@@ -50,7 +50,7 @@ lens_alloc(
         const char *name)
 {
     size_t name_len = strnlen(name, optics_name_max_len) + 1;
-    if (name_len == optics_name_max_len) return 0;
+    if (name_len == optics_name_max_len) return NULL;
 
     struct optics_lens *lens = calloc(1, sizeof(struct optics_lens) + name_len + lens_len);
     if (!lens) return NULL;

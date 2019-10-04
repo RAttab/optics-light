@@ -1,6 +1,9 @@
 /* bench.h
    Rémi Attab (remi.attab@gmail.com), 23 Jan 2016
    FreeBSD-style copyright and disclaimer apply
+
+   TODO: Framework needs to be reworked as it computes a distribution of
+   averages which is bad (tm).
 */
 
 #pragma once

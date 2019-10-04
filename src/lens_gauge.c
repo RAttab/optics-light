@@ -10,7 +10,7 @@
 // struct
 // -----------------------------------------------------------------------------
 
-struct optics_packed lens_gauge
+struct lens_gauge
 {
     atomic_uint_fast64_t value;
 };
@@ -26,7 +26,7 @@ static_assert(sizeof(uint64_t) == sizeof(double),
 // impl
 // -----------------------------------------------------------------------------
 
-static struct lens *
+static struct optics_lens *
 lens_gauge_alloc(struct optics *optics, const char *name)
 {
     return lens_alloc(optics, optics_gauge, sizeof(struct lens_gauge), name);
@@ -37,7 +37,7 @@ lens_gauge_set(struct optics_lens *lens, optics_epoch_t epoch, double value)
 {
     (void) epoch;
 
-    struct lens_gauge *gauge = lens_sub_ptr(lens->lens, optics_gauge);
+    struct lens_gauge *gauge = lens_sub_ptr(lens, optics_gauge);
     if (!gauge) return false;
 
     atomic_store_explicit(&gauge->value, pun_dtoi(value), memory_order_relaxed);
@@ -49,7 +49,7 @@ lens_gauge_read(struct optics_lens *lens, optics_epoch_t epoch, double *value)
 {
     (void) epoch;
 
-    struct lens_gauge *gauge = lens_sub_ptr(lens->lens, optics_gauge);
+    struct lens_gauge *gauge = lens_sub_ptr(lens, optics_gauge);
     if (!gauge) return optics_err;
 
     uint64_t result = atomic_load_explicit(&gauge->value, memory_order_relaxed);

@@ -1,6 +1,8 @@
 /* poller_poll.c
    Rémi Attab (remi.attab@gmail.com), 15 Mar 2016
    FreeBSD-style copyright and disclaimer apply
+
+   \todo Get rid of all the merging logic
 */
 
 
@@ -14,19 +16,6 @@ enum { poller_max_optics = 128 };
 // -----------------------------------------------------------------------------
 // struct
 // -----------------------------------------------------------------------------
-
-struct poller_list_item
-{
-    struct optics *optics;
-    optics_ts_t last_poll;
-    size_t epoch;
-};
-
-struct poller_list
-{
-    size_t len;
-    struct poller_list_item items[poller_max_optics];
-};
 
 struct poller_poll_ctx
 {
@@ -135,17 +124,18 @@ static enum optics_ret poller_poll_lens(void *ctx_, struct optics_lens *lens)
 
 static void poller_poll_optics(
         struct optics_poller *poller,
-        struct poller_list_item *item,
         optics_ts_t ts,
+        optics_ts_t last_poll,
+        optics_epoch_t epoch,
         struct htable *values)
 {
     optics_ts_t elapsed = 0;
-    if (ts > item->last_poll) elapsed = ts - item->last_poll;
-    else if (ts == item->last_poll) elapsed = 1;
+    if (ts > last_poll) elapsed = ts - last_poll;
+    else if (ts == last_poll) elapsed = 1;
     else {
             elapsed = 1;
             optics_warn("clock out of sync for '%s': optics=%lu, poller=%lu",
-                    optics_get_prefix(item->optics), item->last_poll, ts);
+                    optics_get_prefix(poller->optics), last_poll, ts);
     }
     assert(elapsed > 0);
 
@@ -154,33 +144,13 @@ static void poller_poll_optics(
         .elapsed = elapsed,
 
         .host = optics_poller_get_host(poller),
-        .prefix = optics_get_prefix(item->optics),
+        .prefix = optics_get_prefix(poller->optics),
 
-        .epoch = item->epoch,
+        .epoch = epoch,
         .values = values,
     };
 
-    (void) optics_foreach_lens(item->optics, &ctx, poller_poll_lens);
-}
-
-static enum shm_ret poller_shm_cb(void *ctx, const char *name)
-{
-    struct poller_list *list = ctx;
-
-    struct optics *optics = optics_open(name);
-    if (!optics) {
-        optics_warn("unable to open optics '%s': %s", name, optics_errno.msg);
-        return shm_ok;
-    }
-    list->items[list->len].optics = optics;
-
-    list->len++;
-    if (list->len >= poller_max_optics) {
-        optics_warn("reached optics polling capcity '%d'", poller_max_optics);
-        return shm_break;
-    }
-
-    return shm_ok;
+    (void) optics_foreach_lens(poller->optics, &ctx, poller_poll_lens);
 }
 
 bool optics_poller_poll(struct optics_poller *poller)
@@ -190,14 +160,8 @@ bool optics_poller_poll(struct optics_poller *poller)
 
 bool optics_poller_poll_at(struct optics_poller *poller, optics_ts_t ts)
 {
-    struct poller_list to_poll = {0};
-    if (shm_foreach(&to_poll, poller_shm_cb) == shm_err) return false;
-    if (!to_poll.len) return true;
-
-    for (size_t i = 0; i < to_poll.len; ++i) {
-        struct poller_list_item *item = &to_poll.items[i];
-        item->epoch = optics_epoch_inc_at(item->optics, ts, &item->last_poll);
-    }
+    optics_ts_t last_poll = 0;
+    optics_epoch_t epoch = optics_epoch_inc_at(poller->optics, ts, &last_poll);
 
     // give a chance for stragglers to finish. We'd need full EBR to do this
     // properly but that would add overhead on the record side so we instead
@@ -205,9 +169,7 @@ bool optics_poller_poll_at(struct optics_poller *poller, optics_ts_t ts)
     nsleep(1 * 1000 * 1000);
 
     struct htable values = {0};
-    for (size_t i = 0; i < to_poll.len; ++i)
-        poller_poll_optics(poller, &to_poll.items[i], ts, &values);
-
+    poller_poll_optics(poller, ts, last_poll, epoch, &values);
 
     poller_backend_record(poller, optics_poll_begin, NULL);
 
@@ -220,10 +182,6 @@ bool optics_poller_poll_at(struct optics_poller *poller, optics_ts_t ts)
 
     poller_backend_record(poller, optics_poll_done, NULL);
 
-    for (size_t i = 0; i < to_poll.len; ++i)
-       optics_close(to_poll.items[i].optics);
-
     htable_reset(&values);
-
     return true;
 }

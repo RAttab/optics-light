@@ -9,24 +9,22 @@
 // open/close
 // -----------------------------------------------------------------------------
 
-optics_test_head(lens_quantile_open_close_test)
+optics_test_head(lens_quantile_create_test)
 {
     struct optics *optics = optics_create(test_name);
     const char *lens_name = "bob_the_quantile";
 
     for (size_t i = 0; i < 3; ++i) {
-        struct optics_lens *lens = optics_quantile_alloc(optics, lens_name, 0.99, 0, 0.05);
+        struct optics_lens *lens = optics_quantile_create(optics, lens_name, 0.99, 0, 0.05);
         if (!lens) optics_abort();
 
         assert_int_equal(optics_lens_type(lens), optics_quantile);
         assert_string_equal(optics_lens_name(lens), lens_name);
 
-        assert_null(optics_quantile_alloc(optics, lens_name, 0.99, 0, 0.05));
-        optics_lens_close(lens);
-        assert_null(optics_quantile_alloc(optics, lens_name, 0.99, 0, 0.05));
+        assert_null(optics_quantile_create(optics, lens_name, 0.99, 0, 0.05));
 
         assert_non_null(lens = optics_lens_get(optics, lens_name));
-        optics_lens_free(lens);
+        optics_lens_close(lens);
     }
 
     optics_close(optics);
@@ -40,7 +38,7 @@ optics_test_tail()
 optics_test_head(lens_quantile_update_read_test)
 {
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *lens = optics_quantile_alloc(optics, "bob_the_quantile", 0.90, 70, 0.05);
+    struct optics_lens *lens = optics_quantile_create(optics, "bob_the_quantile", 0.90, 70, 0.05);
 
     optics_epoch_t epoch = optics_epoch(optics);
 
@@ -72,17 +70,14 @@ static void test_merge(
         size_t n1, double v1,
         double exp)
 {
-    optics_log("test", "quantile=%g, 0={%zu, %g}, 1={%zu, %g}, exp=%g",
-            quantile, n0, v0, n1, v1, exp);
-
     // reset the seed for consistent result.
     rng_seed_with(rng_global(), 0);
 
     // By the setting the adjusment to 0, I'm guaranteeing the value of the
     // read. In other words, I'm cheating :)
     struct { size_t n; double val; struct optics_lens *lens; } item[2] = {
-        { n0, v0, optics_quantile_alloc(optics, "l0", quantile, v0, 0) },
-        { n1, v1, optics_quantile_alloc(optics, "l1", quantile, v1, 0) },
+        { n0, v0, optics_quantile_create(optics, "l0", quantile, v0, 0) },
+        { n1, v1, optics_quantile_create(optics, "l1", quantile, v1, 0) },
     };
 
     enum { iterations = 100 };
@@ -110,7 +105,7 @@ static void test_merge(
     assert_float_equal(result / iterations, exp, 0.1);
 
     for (size_t i = 0; i < 2; ++i)
-        optics_lens_free(item[i].lens);
+        optics_lens_close(item[i].lens);
 }
 
 optics_test_head(lens_quantile_merge_test)
@@ -196,7 +191,7 @@ optics_test_head(lens_quantile_update_read_mt_test)
 {
     assert_mt();
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *lens = optics_quantile_alloc(optics, "bob_the_quantile", 0.90, 50, 0.05);
+    struct optics_lens *lens = optics_quantile_create(optics, "bob_the_quantile", 0.90, 50, 0.05);
 
     struct mt_test data = {
         .optics = optics,
@@ -217,7 +212,7 @@ optics_test_tail()
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(lens_quantile_open_close_test),
+        cmocka_unit_test(lens_quantile_create_test),
         cmocka_unit_test(lens_quantile_update_read_test),
         cmocka_unit_test(lens_quantile_merge_test),
         cmocka_unit_test(lens_quantile_update_read_mt_test)

@@ -8,7 +8,7 @@
 // struct
 // -----------------------------------------------------------------------------
 
-struct optics_packed lens_counter
+struct lens_counter
 {
     atomic_int_fast64_t value[2];
 };
@@ -18,7 +18,7 @@ struct optics_packed lens_counter
 // impl
 // -----------------------------------------------------------------------------
 
-static struct lens *
+static struct optics_lens *
 lens_counter_alloc(struct optics *optics, const char *name)
 {
     return lens_alloc(optics, optics_counter, sizeof(struct lens_counter), name);
@@ -27,7 +27,7 @@ lens_counter_alloc(struct optics *optics, const char *name)
 static bool
 lens_counter_inc(struct optics_lens *lens, optics_epoch_t epoch, int64_t value)
 {
-    struct lens_counter *counter = lens_sub_ptr(lens->lens, optics_counter);
+    struct lens_counter *counter = lens_sub_ptr(lens, optics_counter);
     if (!counter) return false;
 
     atomic_fetch_add_explicit(&counter->value[epoch], value, memory_order_relaxed);
@@ -37,7 +37,7 @@ lens_counter_inc(struct optics_lens *lens, optics_epoch_t epoch, int64_t value)
 static enum optics_ret
 lens_counter_read(struct optics_lens *lens, optics_epoch_t epoch, int64_t *value)
 {
-    struct lens_counter *counter = lens_sub_ptr(lens->lens, optics_counter);
+    struct lens_counter *counter = lens_sub_ptr(lens, optics_counter);
     if (!counter) return optics_err;
 
     *value += atomic_exchange_explicit(&counter->value[epoch], 0, memory_order_relaxed);

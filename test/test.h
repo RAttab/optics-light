@@ -32,7 +32,6 @@
     void name(optics_unused void **test_state)          \
     {                                                   \
         optics_unused const char * test_name = #name;   \
-        optics_unlink_all();                            \
         do
 
 #define optics_test_tail()                      \
@@ -46,11 +45,15 @@
 
 void assert_mt();
 
+// Older version of cmocka doesn't provide this.
+#ifndef assert_float_equal
+
 bool assert_float_equal_impl(double a, double b, double epsilon);
 
 #define assert_float_equal(a, b, epsilon)                       \
     assert_true(assert_float_equal_impl(a, b, epsilon))
 
+#endif
 
 bool assert_htable_equal_impl(
         struct htable *,
@@ -66,13 +69,6 @@ bool assert_htable_equal_impl(
         size_t len = sizeof(exp) / sizeof(struct htable_bucket);        \
         assert_true(assert_htable_equal_impl(set, exp, len, eps));  \
     } while (false)
-
-// -----------------------------------------------------------------------------
-// utils
-// -----------------------------------------------------------------------------
-
-struct optics *optics_create_idx_at(
-        const char *base, size_t index, optics_ts_t ts);
 
 
 // -----------------------------------------------------------------------------

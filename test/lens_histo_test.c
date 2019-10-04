@@ -42,7 +42,7 @@
 // open/close
 // -----------------------------------------------------------------------------
 
-optics_test_head(lens_histo_open_close_test)
+optics_test_head(lens_histo_create_test)
 {
     struct optics *optics = optics_create(test_name);
     const char *lens_name = "my_histo";
@@ -50,18 +50,16 @@ optics_test_head(lens_histo_open_close_test)
 
     for (size_t i = 0; i < 3; ++i) {
         struct optics_lens *lens =
-            optics_histo_alloc(optics, lens_name, buckets, calc_len(buckets));
+            optics_histo_create(optics, lens_name, buckets, calc_len(buckets));
         if (!lens) optics_abort();
 
         assert_int_equal(optics_lens_type(lens), optics_histo);
         assert_string_equal(optics_lens_name(lens), lens_name);
 
-        assert_null(optics_histo_alloc(optics, lens_name, buckets, calc_len(buckets)));
-        optics_lens_close(lens);
-        assert_null(optics_histo_alloc(optics, lens_name, buckets, calc_len(buckets)));
+        assert_null(optics_histo_create(optics, lens_name, buckets, calc_len(buckets)));
 
         assert_non_null(lens = optics_lens_get(optics, lens_name));
-        optics_lens_free(lens);
+        optics_lens_close(lens);
     }
 
     optics_close(optics);
@@ -73,20 +71,20 @@ optics_test_tail()
 // alloc_get
 // -----------------------------------------------------------------------------
 
-optics_test_head(lens_histo_alloc_get_test)
+optics_test_head(lens_histo_open_test)
 {
     struct optics *optics = optics_create(test_name);
     const char *lens_name = "my_histo";
     const uint64_t buckets[] = {1, 10, 100};
 
     for (size_t i = 0; i < 3; ++i) {
-        struct optics_lens *l0 = optics_histo_alloc_get(
+        struct optics_lens *l0 = optics_histo_open(
                 optics, lens_name, buckets, calc_len(buckets));
         if (!l0) optics_abort();
         for (size_t j = 0; j < 50; ++j) optics_histo_inc(l0, j);
 
         struct optics_lens *l1 =
-            optics_histo_alloc_get(optics, lens_name, buckets, calc_len(buckets));
+            optics_histo_open(optics, lens_name, buckets, calc_len(buckets));
         if (!l1) optics_abort();
         for (size_t j = 0; j < 50; ++j) optics_histo_inc(l0, j + 50);
 
@@ -96,8 +94,7 @@ optics_test_head(lens_histo_alloc_get_test)
         optics_histo_read(l0, epoch, &value);
         assert_histo_equal(value, buckets, 1, 0, 9, 90);
 
-        optics_lens_close(l0);
-        optics_lens_free(l1);
+        optics_lens_close(l1);
     }
 
     optics_close(optics);
@@ -116,34 +113,34 @@ optics_test_head(lens_histo_validate_test)
 
     {
         const uint64_t buckets[] = {};
-        assert_null(optics_histo_alloc(optics, lens_name, buckets, calc_len(buckets)));
+        assert_null(optics_histo_create(optics, lens_name, buckets, calc_len(buckets)));
     }
 
     {
         const uint64_t buckets[] = {1};
-        assert_null(optics_histo_alloc(optics, lens_name, buckets, calc_len(buckets)));
+        assert_null(optics_histo_create(optics, lens_name, buckets, calc_len(buckets)));
     }
 
     {
         const uint64_t buckets[] = {2, 1};
-        assert_null(optics_histo_alloc(optics, lens_name, buckets, calc_len(buckets)));
+        assert_null(optics_histo_create(optics, lens_name, buckets, calc_len(buckets)));
     }
 
     {
         const uint64_t buckets[] = {1, 1};
-        assert_null(optics_histo_alloc(optics, lens_name, buckets, calc_len(buckets)));
+        assert_null(optics_histo_create(optics, lens_name, buckets, calc_len(buckets)));
     }
 
     {
         uint64_t buckets[optics_histo_buckets_max + 1];
         for (size_t i = 0; i < calc_len(buckets); ++i) buckets[i] = i;
-        assert_non_null(optics_histo_alloc(optics, lens_name, buckets, calc_len(buckets)));
+        assert_non_null(optics_histo_create(optics, lens_name, buckets, calc_len(buckets)));
     }
 
     {
         uint64_t buckets[optics_histo_buckets_max + 2];
         for (size_t i = 0; i < calc_len(buckets); ++i) buckets[i] = i;
-        assert_null(optics_histo_alloc(optics, lens_name, buckets, calc_len(buckets)));
+        assert_null(optics_histo_create(optics, lens_name, buckets, calc_len(buckets)));
     }
 
     optics_close(optics);
@@ -160,7 +157,7 @@ optics_test_head(lens_histo_record_read_test)
     struct optics *optics = optics_create(test_name);
 
     const uint64_t buckets[] = {10, 20, 30, 40, 50};
-    struct optics_lens *lens = optics_histo_alloc(optics, "my_histo", buckets, calc_len(buckets));
+    struct optics_lens *lens = optics_histo_create(optics, "my_histo", buckets, calc_len(buckets));
 
     struct optics_histo value;
     optics_epoch_t epoch = optics_epoch(optics);
@@ -206,8 +203,8 @@ optics_test_head(lens_histo_merge_test)
 {
     const uint64_t buckets[] = {10, 20, 30, 40, 50};
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *l0 = optics_histo_alloc(optics, "l0", buckets, calc_len(buckets));
-    struct optics_lens *l1 = optics_histo_alloc(optics, "l1", buckets, calc_len(buckets));
+    struct optics_lens *l0 = optics_histo_create(optics, "l0", buckets, calc_len(buckets));
+    struct optics_lens *l1 = optics_histo_create(optics, "l1", buckets, calc_len(buckets));
     optics_epoch_t epoch = optics_epoch(optics);
 
     {
@@ -245,30 +242,30 @@ optics_test_head(lens_histo_merge_test)
 
     {
         const uint64_t buckets[] = {10, 20};
-        struct optics_lens *l2 = optics_histo_alloc(optics, "l2", buckets, calc_len(buckets));
+        struct optics_lens *l2 = optics_histo_create(optics, "l2", buckets, calc_len(buckets));
 
         struct optics_histo value = {0};
         assert_int_equal(optics_histo_read(l0, epoch, &value), optics_ok);
         assert_int_equal(optics_histo_read(l2, epoch, &value), optics_err);
         assert_int_equal(optics_histo_read(l1, epoch, &value), optics_ok);
 
-        optics_lens_free(l2);
+        optics_lens_close(l2);
     }
 
     {
         const uint64_t buckets[] = {10, 25, 30, 40, 50};
-        struct optics_lens *l2 = optics_histo_alloc(optics, "l2", buckets, calc_len(buckets));
+        struct optics_lens *l2 = optics_histo_create(optics, "l2", buckets, calc_len(buckets));
 
         struct optics_histo value = {0};
         assert_int_equal(optics_histo_read(l0, epoch, &value), optics_ok);
         assert_int_equal(optics_histo_read(l2, epoch, &value), optics_err);
         assert_int_equal(optics_histo_read(l1, epoch, &value), optics_ok);
 
-        optics_lens_free(l2);
+        optics_lens_close(l2);
     }
 
-    optics_lens_free(l0);
-    optics_lens_free(l1);
+    optics_lens_close(l0);
+    optics_lens_close(l1);
     optics_close(optics);
 }
 optics_test_tail()
@@ -288,14 +285,11 @@ optics_test_head(lens_histo_type_test)
     optics_epoch_t epoch = optics_epoch(optics);
 
     {
-        struct optics_lens *lens = optics_counter_alloc(optics, lens_name);
+        struct optics_lens *lens = optics_counter_create(optics, lens_name);
 
         assert_false(optics_histo_inc(lens, 1));
         assert_int_equal(optics_histo_read(lens, epoch, &value), optics_err);
-
-        optics_lens_close(lens);
     }
-
 
     {
         struct optics_lens *lens = optics_lens_get(optics, lens_name);
@@ -321,7 +315,7 @@ optics_test_head(lens_histo_epoch_st_test)
 
     const uint64_t buckets[] = {1, 2, 3, 4, 5};
     struct optics_lens *lens =
-        optics_histo_alloc(optics, "my_histo", buckets, calc_len(buckets));
+        optics_histo_create(optics, "my_histo", buckets, calc_len(buckets));
 
     for (size_t i = 1; i < 5; ++i) {
         optics_epoch_t epoch = optics_epoch_inc(optics);
@@ -413,7 +407,7 @@ optics_test_head(lens_histo_epoch_mt_test)
 
     const uint64_t buckets[] = { 0, 10, 20, 30, 40, 50 };
     struct optics_lens *lens =
-        optics_histo_alloc(optics, "my_histo", buckets, calc_len(buckets));
+        optics_histo_create(optics, "my_histo", buckets, calc_len(buckets));
 
     struct epoch_test data = {
         .optics = optics,
@@ -438,14 +432,14 @@ int main(void)
     rng_seed_with(rng_global(), 0);
 
     const struct CMUnitTest tests[] = {
-        /* cmocka_unit_test(lens_histo_open_close_test), */
-        /* cmocka_unit_test(lens_histo_alloc_get_test), */
-        /* cmocka_unit_test(lens_histo_validate_test), */
-        /* cmocka_unit_test(lens_histo_record_read_test), */
+        cmocka_unit_test(lens_histo_create_test),
+        cmocka_unit_test(lens_histo_open_test),
+        cmocka_unit_test(lens_histo_validate_test),
+        cmocka_unit_test(lens_histo_record_read_test),
         cmocka_unit_test(lens_histo_merge_test),
-        /* cmocka_unit_test(lens_histo_type_test), */
-        /* cmocka_unit_test(lens_histo_epoch_st_test), */
-        /* cmocka_unit_test(lens_histo_epoch_mt_test), */
+        cmocka_unit_test(lens_histo_type_test),
+        cmocka_unit_test(lens_histo_epoch_st_test),
+        cmocka_unit_test(lens_histo_epoch_mt_test),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

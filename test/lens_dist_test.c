@@ -40,24 +40,22 @@ static inline double p(double percentile, double max)
 // open/close
 // -----------------------------------------------------------------------------
 
-optics_test_head(lens_dist_open_close_test)
+optics_test_head(lens_dist_create_test)
 {
     struct optics *optics = optics_create(test_name);
     const char *lens_name = "my_dist";
 
     for (size_t i = 0; i < 3; ++i) {
-        struct optics_lens *lens = optics_dist_alloc(optics, lens_name);
+        struct optics_lens *lens = optics_dist_create(optics, lens_name);
         if (!lens) optics_abort();
 
         assert_int_equal(optics_lens_type(lens), optics_dist);
         assert_string_equal(optics_lens_name(lens), lens_name);
 
-        assert_null(optics_dist_alloc(optics, lens_name));
-        optics_lens_close(lens);
-        assert_null(optics_dist_alloc(optics, lens_name));
+        assert_null(optics_dist_create(optics, lens_name));
 
         assert_non_null(lens = optics_lens_get(optics, lens_name));
-        optics_lens_free(lens);
+        optics_lens_close(lens);
     }
 
     optics_close(optics);
@@ -69,27 +67,26 @@ optics_test_tail()
 // alloc_get
 // -----------------------------------------------------------------------------
 
-optics_test_head(lens_dist_alloc_get_test)
+optics_test_head(lens_dist_open_test)
 {
     struct optics *optics = optics_create(test_name);
     const char *lens_name = "blah";
 
     for (size_t i = 0; i < 3; ++i) {
-        struct optics_lens *l0 = optics_dist_alloc_get(optics, lens_name);
+        struct optics_lens *l0 = optics_dist_open(optics, lens_name);
         if (!l0) optics_abort();
         for (size_t j = 1; j <= 50; ++j) optics_dist_record(l0, j);
 
-        struct optics_lens *l1 = optics_dist_alloc_get(optics, lens_name);
+        struct optics_lens *l1 = optics_dist_open(optics, lens_name);
         if (!l1) optics_abort();
-        for (size_t j = 1; j <= 50; ++j) optics_dist_record(l0, j + 50);
+        for (size_t j = 50; j <= 100; ++j) optics_dist_record(l1, j);
 
         optics_epoch_t epoch = optics_epoch_inc(optics);
 
         struct optics_dist value = checked_dist_read(l0, epoch);
-        assert_dist_equal(value, 100, 50, 90, 99, 100, 0);
+        assert_dist_equal(value, 101, 50, 90, 99, 100, 0);
 
-        optics_lens_close(l0);
-        optics_lens_free(l1);
+        optics_lens_close(l1);
     }
 
     optics_close(optics);
@@ -104,7 +101,7 @@ optics_test_tail()
 optics_test_head(lens_dist_record_read_exact_test)
 {
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *lens = optics_dist_alloc(optics, "my_dist");
+    struct optics_lens *lens = optics_dist_create(optics, "my_dist");
 
     struct optics_dist value;
     optics_epoch_t epoch = optics_epoch(optics);
@@ -155,7 +152,7 @@ optics_test_tail()
 optics_test_head(lens_dist_record_read_random_test)
 {
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *lens = optics_dist_alloc(optics, "my_dist");
+    struct optics_lens *lens = optics_dist_create(optics, "my_dist");
 
     struct optics_dist value;
     optics_epoch_t epoch = optics_epoch(optics);
@@ -232,8 +229,8 @@ static void test_merge(struct optics *optics, size_t n0, size_t n1, double epsil
 
     optics_epoch_t epoch = optics_epoch(optics);
     struct { size_t n; struct optics_lens *lens; } item[2] = {
-        { n0, optics_dist_alloc(optics, "l0") },
-        { n1, optics_dist_alloc(optics, "l1") },
+        { n0, optics_dist_create(optics, "l0") },
+        { n1, optics_dist_create(optics, "l1") },
     };
 
     double max = 0;
@@ -254,7 +251,7 @@ static void test_merge(struct optics *optics, size_t n0, size_t n1, double epsil
             value, n0 + n1, p(50, range), p(90, range), p(99, range), max, epsilon);
 
     for (size_t i = 0; i < 2; ++i)
-        optics_lens_free(item[i].lens);
+        optics_lens_close(item[i].lens);
 }
 
 optics_test_head(lens_dist_merge_test)
@@ -293,15 +290,12 @@ optics_test_head(lens_dist_type_test)
     optics_epoch_t epoch = optics_epoch(optics);
 
     {
-        struct optics_lens *lens = optics_counter_alloc(optics, lens_name);
+        struct optics_lens *lens = optics_counter_create(optics, lens_name);
 
         value = (struct optics_dist) {0};
         assert_false(optics_dist_record(lens, 1));
         assert_int_equal(optics_dist_read(lens, epoch, &value), optics_err);
-
-        optics_lens_close(lens);
     }
-
 
     {
         struct optics_lens *lens = optics_lens_get(optics, lens_name);
@@ -325,7 +319,7 @@ optics_test_tail()
 optics_test_head(lens_dist_epoch_st_test)
 {
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *lens = optics_dist_alloc(optics, "my_dist");
+    struct optics_lens *lens = optics_dist_create(optics, "my_dist");
 
     struct optics_dist value;
     for (size_t i = 1; i < 5; ++i) {
@@ -411,7 +405,7 @@ optics_test_head(lens_dist_epoch_mt_test)
 {
     assert_mt();
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *lens = optics_dist_alloc(optics, "my_dist");
+    struct optics_lens *lens = optics_dist_create(optics, "my_dist");
 
     struct epoch_test data = {
         .optics = optics,
@@ -435,7 +429,8 @@ int main(void)
     rng_seed_with(rng_global(), 0);
 
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(lens_dist_open_close_test),
+        cmocka_unit_test(lens_dist_create_test),
+        cmocka_unit_test(lens_dist_open_test),
         cmocka_unit_test(lens_dist_record_read_exact_test),
         cmocka_unit_test(lens_dist_record_read_random_test),
         cmocka_unit_test(lens_dist_merge_test),

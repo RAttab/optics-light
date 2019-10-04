@@ -8,13 +8,13 @@
 // struct
 // -----------------------------------------------------------------------------
 
-struct optics_packed lens_histo_epoch
+struct lens_histo_epoch
 {
     atomic_size_t below, above;
     atomic_size_t counts[optics_histo_buckets_max];
 };
 
-struct optics_packed lens_histo
+struct lens_histo
 {
     struct lens_histo_epoch epochs[2];
 
@@ -27,7 +27,7 @@ struct optics_packed lens_histo
 // impl
 // -----------------------------------------------------------------------------
 
-static struct lens *
+static struct optics_lens *
 lens_histo_alloc(
         struct optics *optics, const char *name,
         const uint64_t *buckets, size_t buckets_len)
@@ -51,7 +51,7 @@ lens_histo_alloc(
         }
     }
 
-    struct lens *lens = lens_alloc(optics, optics_histo, sizeof(struct lens_histo), name);
+    struct optics_lens *lens = lens_alloc(optics, optics_histo, sizeof(struct lens_histo), name);
     if (!lens) goto fail_alloc;
 
     struct lens_histo *histo = lens_sub_ptr(lens, optics_histo);
@@ -63,7 +63,7 @@ lens_histo_alloc(
     return lens;
 
   fail_sub:
-    lens_free(optics, lens);
+    lens_free(lens);
   fail_alloc:
   fail_buckets:
     return NULL;
@@ -74,7 +74,7 @@ lens_histo_inc(struct optics_lens *lens, optics_epoch_t epoch, double value)
 {
     (void) epoch;
 
-    struct lens_histo *histo = lens_sub_ptr(lens->lens, optics_histo);
+    struct lens_histo *histo = lens_sub_ptr(lens, optics_histo);
     if (!histo) return false;
 
     atomic_size_t *bucket = NULL;
@@ -105,7 +105,7 @@ lens_histo_read(struct optics_lens *lens, optics_epoch_t epoch, struct optics_hi
 {
     (void) epoch;
 
-    struct lens_histo *histo = lens_sub_ptr(lens->lens, optics_histo);
+    struct lens_histo *histo = lens_sub_ptr(lens, optics_histo);
     if (!histo) return optics_err;
 
     if (!value->buckets_len) {

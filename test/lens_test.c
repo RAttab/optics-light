@@ -44,7 +44,7 @@ optics_test_head(lens_basics_st_test)
             char name[optics_name_max_len];
             snprintf(name, sizeof(name), "lens_%lu", i);
 
-            lens[i] = optics_counter_alloc(optics, name);
+            lens[i] = optics_counter_create(optics, name);
             assert_int_equal(lens_count(optics), i + 1);
         }
 
@@ -58,13 +58,11 @@ optics_test_head(lens_basics_st_test)
             assert_non_null(lens);
             assert_int_equal(optics_lens_type(lens), optics_counter);
             assert_string_equal(optics_lens_name(lens), name);
-
-            optics_lens_close(lens);
         }
 
         for (size_t i = 0; i < n; ++i) {
             size_t j = iteration % 2 ? i : n - i - 1;
-            assert_true(optics_lens_free(lens[j]));
+            assert_true(optics_lens_close(lens[j]));
             assert_int_equal(lens_count(optics), n - (i + 1));
         }
     }
@@ -92,7 +90,7 @@ void run_basics_mt(size_t thread_id, void *ctx)
     for (size_t iteration = 0; iteration < 100; ++iteration) {
         for (size_t i = 0; i < n; ++i) {
             snprintf(name + name_i, sizeof(name) - name_i, "lens_%lu", i);
-            lens[i] = optics_counter_alloc(optics, name);
+            lens[i] = optics_counter_create(optics, name);
             assert_non_null(lens[i]);
         }
 
@@ -104,13 +102,11 @@ void run_basics_mt(size_t thread_id, void *ctx)
             assert_non_null(lens);
             assert_int_equal(optics_lens_type(lens), optics_counter);
             assert_string_equal(optics_lens_name(lens), name);
-
-            optics_lens_close(lens);
         }
 
         for (size_t i = 0; i < n; ++i) {
             size_t j = iteration % 2 ? i : n - i - 1;
-            assert_true(optics_lens_free(lens[j]));
+            assert_true(optics_lens_close(lens[j]));
             lens[j] = NULL;
         }
     }

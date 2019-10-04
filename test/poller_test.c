@@ -97,13 +97,13 @@ optics_test_head(poller_multi_lens_test)
     optics_lens_close(g2);
     optics_lens_close(g3);
     optics_lens_close(g4);
-    optics_close(optics);
 
     htable_reset(&result);
     optics_poller_poll_at(poller, ++ts);
     assert_int_equal(result.len, 0);
 
     optics_poller_free(poller);
+    optics_close(optics);
 }
 optics_test_tail()
 

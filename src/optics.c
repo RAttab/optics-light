@@ -44,6 +44,8 @@ enum { cache_line_len = 64 };
 // -----------------------------------------------------------------------------
 
 static bool optics_defer_free(struct optics *optics, struct optics_lens *ptr);
+static void optics_free_defered(struct optics *optics, optics_epoch_t epoch);
+static void optics_free_lenses(struct optics *optics);
 
 // contains struct optics_lens
 #include "lens.c"
@@ -108,6 +110,10 @@ void optics_close(struct optics *optics)
 {
     optics_assert(slock_try_lock(&optics->lock),
             "closing optics with active thread");
+
+    optics_free_defered(optics, 0);
+    optics_free_defered(optics, 1);
+    optics_free_lenses(optics);
 
     htable_reset(&optics->keys);
     free(optics);
@@ -239,8 +245,6 @@ static void optics_remove_lens(struct optics *optics, struct optics_lens *lens)
 // block on any record operations.
 enum optics_ret optics_foreach_lens(struct optics *optics, void *ctx, optics_foreach_t cb)
 {
-
-    // Synchronizes with optics_push_lens to ensure that all nodes are fully
     // written before we access them.
     atomic_uintptr_t *head = &optics->lens_head;
     struct optics_lens *lens = pun_itop(atomic_load_explicit(head, memory_order_acquire));
@@ -252,6 +256,20 @@ enum optics_ret optics_foreach_lens(struct optics *optics, void *ctx, optics_for
     }
 
     return optics_ok;
+}
+
+// Should only be called from optics_close which is free from all concurrency
+// constraints.
+static void optics_free_lenses(struct optics *optics)
+{
+    atomic_uintptr_t *head = &optics->lens_head;
+    struct optics_lens *lens = pun_itop(atomic_load_explicit(head, memory_order_relaxed));
+
+    while (lens) {
+        struct optics_lens *next = lens_next(lens);
+        free(lens);
+        lens = next;
+    }
 }
 
 

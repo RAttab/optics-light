@@ -160,7 +160,7 @@ bool optics_poller_poll(struct optics_poller *poller)
 
 bool optics_poller_poll_at(struct optics_poller *poller, optics_ts_t ts)
 {
-    optics_ts_t last_poll;
+    optics_ts_t last_poll = 0;
     optics_epoch_t epoch = optics_epoch_inc_at(poller->optics, ts, &last_poll);
 
     // give a chance for stragglers to finish. We'd need full EBR to do this

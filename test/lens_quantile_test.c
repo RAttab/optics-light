@@ -70,9 +70,6 @@ static void test_merge(
         size_t n1, double v1,
         double exp)
 {
-    optics_log("test", "quantile=%g, 0={%zu, %g}, 1={%zu, %g}, exp=%g",
-            quantile, n0, v0, n1, v1, exp);
-
     // reset the seed for consistent result.
     rng_seed_with(rng_global(), 0);
 

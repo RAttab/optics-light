@@ -86,7 +86,7 @@ done
 TEST_DEPS="test.o $LIB $DEPS -lcmocka"
 
 "$CC" -c -o bench.o "${PREFIX}/test/bench.c" $CFLAGS
-BENCH_DEPS="bench.o $LIB $DEPS"
+BENCH_DEPS="bench.o test.o $LIB $DEPS -lcmocka"
 
 "$CC" -c -o example "${PREFIX}/test/example.c" $DEPS $CFLAGS
 
@@ -120,6 +120,9 @@ do_test() {
 
     for test in "${TEST[@]}"; do
         "$CC" -o "test_${test}" "${PREFIX}/test/${test}_test.c" $CFLAGS $TEST_DEPS
+    done
+
+    for test in "${TEST[@]}"; do
         "./test_${test}"
     done
 }
@@ -131,6 +134,9 @@ do_valgrind() {
 
     for test in "${TEST[@]}"; do
         "$CC" -o "test_${test}" "${PREFIX}/test/${test}_test.c" $CFLAGS $TEST_DEPS
+    done
+
+    for test in "${TEST[@]}"; do
         valgrind --leak-check=full --track-origins=yes "./test_${test}"
     done
 }
@@ -142,6 +148,9 @@ do_bench() {
 
     for bench in "${BENCH[@]}"; do
         "$CC" -o "bench_${bench}" "${PREFIX}/test/${bench}_bench.c" $CFLAGS $BENCH_DEPS
+    done
+
+    for bench in "${BENCH[@]}"; do
         "./bench_${bench}"
     done
 }

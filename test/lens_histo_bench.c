@@ -24,7 +24,7 @@ struct histo_bench
 static struct optics_lens *make_basic_lens(struct optics * optics)
 {
     uint64_t buckets[] = {1, 2, 3, 4, 5, 6, 7, 8};
-    return optics_histo_alloc(optics, "my_histo", buckets, calc_len(buckets));
+    return optics_histo_create(optics, "my_histo", buckets, calc_len(buckets));
 }
 
 
@@ -115,7 +115,7 @@ optics_test_head(lens_histo_record_spread_bench_st)
     struct optics *optics = optics_create(test_name);
     struct optics_lens *lens = make_basic_lens(optics);
 
-    struct histo_bench bench = { optics, lens };
+    struct histo_bench bench = { optics, lens, 0 };
     optics_bench_st(test_name, run_record_spread_bench, &bench);
 
     optics_lens_close(lens);
@@ -129,7 +129,7 @@ optics_test_head(lens_histo_record_spread_bench_mt)
     struct optics *optics = optics_create(test_name);
     struct optics_lens *lens = make_basic_lens(optics);
 
-    struct histo_bench bench = { optics, lens };
+    struct histo_bench bench = { optics, lens, 0 };
     optics_bench_mt(test_name, run_record_spread_bench, &bench);
 
     optics_lens_close(lens);
@@ -161,7 +161,7 @@ optics_test_head(lens_histo_read_bench_st)
     struct optics *optics = optics_create(test_name);
     struct optics_lens *lens = make_basic_lens(optics);
 
-    struct histo_bench bench = { optics, lens };
+    struct histo_bench bench = { optics, lens, 0 };
     optics_bench_st(test_name, run_read_bench, &bench);
 
     optics_lens_close(lens);
@@ -175,7 +175,7 @@ optics_test_head(lens_histo_read_bench_mt)
     struct optics *optics = optics_create(test_name);
     struct optics_lens *lens = make_basic_lens(optics);
 
-    struct histo_bench bench = { optics, lens };
+    struct histo_bench bench = { optics, lens, 0 };
     optics_bench_mt(test_name, run_read_bench, &bench);
 
     optics_lens_close(lens);
@@ -212,7 +212,7 @@ optics_test_head(lens_histo_mixed_bench_st)
     struct optics *optics = optics_create(test_name);
     struct optics_lens *lens = make_basic_lens(optics);
 
-    struct histo_bench bench = { optics, lens };
+    struct histo_bench bench = { optics, lens, 0 };
     optics_bench_st(test_name, run_mixed_bench, &bench);
 
     optics_lens_close(lens);
@@ -226,7 +226,7 @@ optics_test_head(lens_histo_mixed_bench_mt)
     struct optics *optics = optics_create(test_name);
     struct optics_lens *lens = make_basic_lens(optics);
 
-    struct histo_bench bench = { optics, lens };
+    struct histo_bench bench = { optics, lens, 0 };
     optics_bench_mt(test_name, run_mixed_bench, &bench);
 
     optics_lens_close(lens);

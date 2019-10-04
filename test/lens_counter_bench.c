@@ -31,7 +31,7 @@ void run_record_bench(struct optics_bench *b, void *data, size_t id, size_t n)
 optics_test_head(lens_counter_record_bench_st)
 {
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *lens = optics_counter_alloc(optics, "my_counter");
+    struct optics_lens *lens = optics_counter_create(optics, "my_counter");
 
     struct counter_bench bench = { optics, lens };
     optics_bench_st(test_name, run_record_bench, &bench);
@@ -45,7 +45,7 @@ optics_test_head(lens_counter_record_bench_mt)
 {
     assert_mt();
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *lens = optics_counter_alloc(optics, "my_counter");
+    struct optics_lens *lens = optics_counter_create(optics, "my_counter");
 
     struct counter_bench bench = { optics, lens };
     optics_bench_mt(test_name, run_record_bench, &bench);
@@ -76,7 +76,7 @@ void run_read_bench(struct optics_bench *b, void *data, size_t id, size_t n)
 optics_test_head(lens_counter_read_bench_st)
 {
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *lens = optics_counter_alloc(optics, "my_counter");
+    struct optics_lens *lens = optics_counter_create(optics, "my_counter");
 
     struct counter_bench bench = { optics, lens };
     optics_bench_st(test_name, run_read_bench, &bench);
@@ -90,7 +90,7 @@ optics_test_head(lens_counter_read_bench_mt)
 {
     assert_mt();
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *lens = optics_counter_alloc(optics, "my_counter");
+    struct optics_lens *lens = optics_counter_create(optics, "my_counter");
 
     struct counter_bench bench = { optics, lens };
     optics_bench_mt(test_name, run_read_bench, &bench);
@@ -127,7 +127,7 @@ optics_test_head(lens_counter_mixed_bench_mt)
 {
     assert_mt();
     struct optics *optics = optics_create(test_name);
-    struct optics_lens *lens = optics_counter_alloc(optics, "my_counter");
+    struct optics_lens *lens = optics_counter_create(optics, "my_counter");
 
     struct counter_bench bench = { optics, lens };
     optics_bench_mt(test_name, run_mixed_bench, &bench);

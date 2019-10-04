@@ -35,7 +35,7 @@ struct bench_lens *make_lenses(struct optics *optics, size_t len, size_t id)
 
     for (size_t i = 0; i < len; ++i) {
         snprintf(list[i].name, sizeof(list[i].name), "prefix_%lu_lens_%lu", id, i);
-        list[i].lens = optics_counter_alloc(optics, list[i].name);
+        list[i].lens = optics_counter_create(optics, list[i].name);
     }
 
     return list;
@@ -93,8 +93,8 @@ optics_test_head(lens_get_bench)
             optics_bench_mt(buffer, run_get_bench, &bench);
         }
 
-        close_lenses(list, count);
         optics_close(optics);
+        free(list);
     }
 }
 optics_test_tail()
@@ -116,13 +116,13 @@ void run_alloc_bench(struct optics_bench *b, void *data, size_t id, size_t n)
         optics_bench_start(b);
 
         for (size_t i = 0; i < n; ++i)
-            list[i].lens = optics_gauge_alloc(optics, list[i].name);
+            list[i].lens = optics_gauge_create(optics, list[i].name);
 
         optics_bench_stop(b);
     }
 
-    close_lenses(list, n);
     if (!id) optics_close(optics);
+    free(list);
 }
 
 optics_test_head(lens_alloc_bench_st)
@@ -155,7 +155,7 @@ void run_free_bench(struct optics_bench *b, void *data, size_t id, size_t n)
         optics_bench_start(b);
 
         for (size_t i = 0; i < n; ++i)
-            optics_lens_free(list[i].lens);
+            optics_lens_close(list[i].lens);
 
         optics_bench_stop(b);
     }

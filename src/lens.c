@@ -18,14 +18,16 @@ struct optics_lens
     atomic_uintptr_t next;
     struct optics_lens *prev;
 
+    struct optics_labels *labels;
+
     // Struct is packed so keep the int at the bottom to avoid alignment issues
-    // (not that x86 cares all that much... I blame my OCD).
+    // (not that amd64 cares all that much... I blame my OCD).
     enum optics_lens_type type;
 
     // Allign to a cache line to avoid alignment issues in the lens itself.
     // This can have a big impact as some lenses would otherwise do atomic
     // operations across cache lines which is atrociously slow.
-    uint8_t padding[cache_line_len - 44];
+    uint8_t padding[cache_line_len - 52];
 };
 
 static_assert(sizeof(struct optics_lens) % 64 == 0,
@@ -142,6 +144,22 @@ static void lens_kill(struct optics_lens *lens)
                 (void *) prev->next, (void *) lens);
         atomic_store_explicit(&prev->next, (uintptr_t) next, memory_order_relaxed);
     }
+}
+
+static const struct optics_labels *lens_labels(struct optics_lens *lens)
+{
+    return lens->labels;
+}
+
+static bool lens_label_set(struct optics_lens *lens, const char *key, const char *val)
+{
+    return optics_labels_set(lens->labels, key, val);
+}
+
+static const struct optics_label *lens_label_get(
+        const struct optics_lens *lens, const char *key)
+{
+    return optics_labels_get(lens->labels, key);
 }
 
 

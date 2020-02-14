@@ -60,6 +60,22 @@ extern __thread struct optics_error optics_errno;
 void optics_perror(struct optics_error *err);
 size_t optics_strerror(struct optics_error *err, char *dest, size_t len);
 
+// -----------------------------------------------------------------------------
+// labels
+// -----------------------------------------------------------------------------
+
+struct optics_label
+{
+    char key[optics_name_max_len];
+    char val[optics_name_max_len];
+};
+
+struct optics_labels;
+
+size_t optics_labels_len(const struct optics_labels *);
+const struct optics_label *optics_labels_it(const struct optics_labels *);
+const struct optics_label *optics_labels_find(const struct optics_labels *, const char *key);
+
 
 // -----------------------------------------------------------------------------
 // optics
@@ -73,6 +89,10 @@ void optics_close(struct optics *);
 
 const char *optics_get_prefix(struct optics *);
 bool optics_set_prefix(struct optics *, const char *prefix);
+
+const struct optics_labels *optics_labels(struct optics *);
+bool optics_label_set(struct optics *, const char *key, const char *val);
+const struct optics_label *optics_label_get(const struct optics *, const char *key);
 
 
 // -----------------------------------------------------------------------------
@@ -102,6 +122,11 @@ struct optics_lens * optics_lens_get(struct optics *, const char *name);
 enum optics_lens_type optics_lens_type(struct optics_lens *);
 const char * optics_lens_name(struct optics_lens *);
 bool optics_lens_close(struct optics_lens *);
+
+const struct optics_labels *optics_lens_labels(struct optics_lens *);
+bool optics_lens_label_set(struct optics_lens *, const char *key, const char *val);
+const struct optics_label *optics_lens_label_get(
+        const struct optics_lens *, const char *key);
 
 struct optics_lens * optics_counter_create(struct optics *, const char *name);
 struct optics_lens * optics_counter_open(struct optics *, const char *name);

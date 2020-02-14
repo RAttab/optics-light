@@ -73,68 +73,6 @@ static size_t lens_dist_reservoir_len(size_t len)
     return len > optics_dist_samples ? optics_dist_samples : len;
 }
 
-static size_t lens_dist_merge(
-        double *dst,
-        const double *lhs, size_t lhs_len,
-        const double *rhs, size_t rhs_len)
-{
-    size_t dst_len = 0;
-    const double *to_merge = NULL; size_t to_merge_len = 0;
-
-    if (lhs_len >= rhs_len) {
-        dst_len = lhs_len;
-        memcpy(dst, lhs, lens_dist_reservoir_len(lhs_len) * sizeof(*lhs));
-
-        to_merge = rhs;
-        to_merge_len = rhs_len;
-    }
-    else {
-        dst_len = rhs_len;
-        memcpy(dst, rhs, lens_dist_reservoir_len(rhs_len) * sizeof(*rhs));
-
-        to_merge = lhs;
-        to_merge_len = lhs_len;
-    }
-
-    assert(to_merge_len <= dst_len);
-    if (!to_merge_len) return lens_dist_reservoir_len(dst_len);
-
-    // Fill up our reservoir if not already full.
-    if (dst_len < optics_dist_samples) {
-        size_t to_copy = optics_dist_samples - dst_len;
-        if (to_copy > to_merge_len) to_copy = to_merge_len;
-
-        memcpy(dst + dst_len, to_merge, to_copy * sizeof(*lhs));
-        dst_len += to_copy;
-        to_merge += to_copy;
-        to_merge_len -= to_copy;
-
-        if (!to_merge_len) return dst_len;
-    }
-
-    // We have non-sampled data so use the regular sampling method
-    if (to_merge_len <= optics_dist_samples) {
-        for (size_t i = 0; i < to_merge_len; ++i) {
-            size_t index = rng_gen_range(rng_global(), 0, dst_len);
-            if (index < optics_dist_samples)
-                dst[index] = to_merge[i];
-            dst_len++;
-        }
-    }
-
-    // We have two sampled set so pick from each set with proportion equal to
-    // the number of values they represent.
-    else {
-        const double rate = (double) to_merge_len / (double) (to_merge_len + dst_len);
-        for (size_t i = 0; i < optics_dist_samples; ++i) {
-            if (rng_gen_prob(rng_global(), rate))
-                dst[i] = to_merge[i];
-        }
-    }
-
-    return optics_dist_samples;
-}
-
 static enum optics_ret
 lens_dist_read(struct optics_lens *lens, optics_epoch_t epoch, struct optics_dist *value)
 {
@@ -143,18 +81,16 @@ lens_dist_read(struct optics_lens *lens, optics_epoch_t epoch, struct optics_dis
 
     struct lens_dist_epoch *dist = &dist_head->epochs[epoch];
 
-    size_t samples_len = 0;
-    double samples[optics_dist_samples];
     {
         // Since we're not locking the active epoch, we should only contend
         // with straglers which can be dealt with by the poller.
         if (slock_is_locked(&dist->lock)) return optics_busy;
 
-        samples_len = dist->n;
+        value->n = dist->n;
         if (value->max < dist->max) value->max = dist->max;
 
-        size_t to_copy = lens_dist_reservoir_len(samples_len);
-        memcpy(samples, dist->samples, to_copy * sizeof(samples[0]));
+        size_t to_copy = lens_dist_reservoir_len(value->n);
+        memcpy(value->samples, dist->samples, to_copy * sizeof(value->samples[0]));
 
         dist->max = 0;
         dist->n = 0;
@@ -162,18 +98,14 @@ lens_dist_read(struct optics_lens *lens, optics_epoch_t epoch, struct optics_dis
         slock_unlock(&dist->lock);
     }
 
-    if (!samples_len) return optics_ok;
+    if (!value->n) return optics_ok;
 
-    double result[optics_dist_samples];
-    size_t result_len = lens_dist_merge(result, samples, samples_len, value->samples, value->n);
+    size_t len = value->n <= optics_dist_samples ? value->n : optics_dist_samples;
+    qsort(value->samples, len, sizeof(double), lens_dist_value_cmp);
 
-    memcpy(value->samples, result, optics_dist_samples * sizeof(double));
-    qsort(result, result_len, sizeof(double), lens_dist_value_cmp);
-
-    value->n += samples_len;
-    value->p50 = result[lens_dist_p(50, result_len)];
-    value->p90 = result[lens_dist_p(90, result_len)];
-    value->p99 = result[lens_dist_p(99, result_len)];
+    value->p50 = value->samples[lens_dist_p(50, len)];
+    value->p90 = value->samples[lens_dist_p(90, len)];
+    value->p99 = value->samples[lens_dist_p(99, len)];
 
     return optics_ok;
 }

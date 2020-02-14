@@ -144,7 +144,6 @@ struct optics_quantile
 {
     double quantile;
     double sample;
-    size_t sample_count;
     size_t count;
 };
 

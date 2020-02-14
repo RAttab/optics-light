@@ -217,67 +217,6 @@ optics_test_tail()
 
 
 // -----------------------------------------------------------------------------
-// merge
-// -----------------------------------------------------------------------------
-
-static void test_merge(struct optics *optics, size_t n0, size_t n1, double epsilon)
-{
-    enum { range = 100 };
-
-    struct rng rng = {0};
-    rng_seed_with(&rng, 0);
-
-    optics_epoch_t epoch = optics_epoch(optics);
-    struct { size_t n; struct optics_lens *lens; } item[2] = {
-        { n0, optics_dist_create(optics, "l0") },
-        { n1, optics_dist_create(optics, "l1") },
-    };
-
-    double max = 0;
-    for (size_t i = 0; i < 2; ++i) {
-        for (size_t j = 0; j < item[i].n; ++j) {
-            double value = rng_gen_range(&rng, 0, range);
-            if (value > max) max = value;
-            optics_dist_record(item[i].lens, value);
-        }
-    }
-
-    struct optics_dist value = {0};
-    for (size_t i = 0; i < 2; ++i) {
-        assert_int_equal(optics_dist_read(item[i].lens, epoch, &value), optics_ok);
-    }
-
-    assert_dist_equal(
-            value, n0 + n1, p(50, range), p(90, range), p(99, range), max, epsilon);
-
-    for (size_t i = 0; i < 2; ++i)
-        optics_lens_close(item[i].lens);
-}
-
-optics_test_head(lens_dist_merge_test)
-{
-    struct optics *optics = optics_create(test_name);
-
-    size_t n = optics_dist_samples;
-    size_t half = n / 2;
-    size_t quarter = 3 * (n / 4);
-    size_t full = n;
-    size_t over = n * 2;
-
-    test_merge(optics, half, half, 1.0);
-    test_merge(optics, full, half, 5.0);
-
-    test_merge(optics, quarter, half, 5.0);
-    test_merge(optics, half, quarter, 5.0);
-
-    test_merge(optics, over, over, 5.0);
-
-    optics_close(optics);
-}
-optics_test_tail()
-
-
-// -----------------------------------------------------------------------------
 // type
 // -----------------------------------------------------------------------------
 
@@ -433,7 +372,6 @@ int main(void)
         cmocka_unit_test(lens_dist_open_test),
         cmocka_unit_test(lens_dist_record_read_exact_test),
         cmocka_unit_test(lens_dist_record_read_random_test),
-        cmocka_unit_test(lens_dist_merge_test),
         cmocka_unit_test(lens_dist_type_test),
         cmocka_unit_test(lens_dist_epoch_st_test),
         cmocka_unit_test(lens_dist_epoch_mt_test),

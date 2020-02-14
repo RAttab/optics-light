@@ -105,42 +105,6 @@ optics_test_tail()
 
 
 // -----------------------------------------------------------------------------
-// merge
-// -----------------------------------------------------------------------------
-
-optics_test_head(lens_gauge_merge_test)
-{
-    struct optics *optics = optics_create(test_name);
-    struct optics_lens *l0 = optics_gauge_create(optics, "l0");
-    struct optics_lens *l1 = optics_gauge_create(optics, "l1");
-    optics_epoch_t epoch = optics_epoch(optics);
-
-    optics_gauge_set(l0, 1);
-    optics_gauge_set(l1, 2);
-
-    // quirks of the current implementation means that last reader wins. There's
-    // no sane other way to merge gauges.
-    
-    {
-        double value = 0;
-        assert_int_equal(optics_gauge_read(l0, epoch, &value), optics_ok);
-        assert_int_equal(optics_gauge_read(l1, epoch, &value), optics_ok);
-        assert_float_equal(value, 2.0, 0.0);
-    }
-    
-    {
-        double value = 0;
-        assert_int_equal(optics_gauge_read(l1, epoch, &value), optics_ok);
-        assert_int_equal(optics_gauge_read(l0, epoch, &value), optics_ok);
-        assert_float_equal(value, 1.0, 0.0);
-    }
-    
-    optics_close(optics);
-}
-optics_test_tail()
-
-
-// -----------------------------------------------------------------------------
 // type
 // -----------------------------------------------------------------------------
 
@@ -223,7 +187,6 @@ int main(void)
         cmocka_unit_test(lens_gauge_create_test),
         cmocka_unit_test(lens_gauge_open_test),
         cmocka_unit_test(lens_gauge_record_read_test),
-        cmocka_unit_test(lens_gauge_merge_test),
         cmocka_unit_test(lens_gauge_type_test),
         cmocka_unit_test(lens_gauge_epoch_test),
     };

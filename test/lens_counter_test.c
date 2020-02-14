@@ -119,54 +119,6 @@ optics_test_tail()
 
 
 // -----------------------------------------------------------------------------
-// merge
-// -----------------------------------------------------------------------------
-
-optics_test_head(lens_counter_merge_test)
-{
-    struct optics *optics = optics_create(test_name);
-    struct optics_lens *l0 = optics_counter_create(optics, "l0");
-    struct optics_lens *l1 = optics_counter_create(optics, "l1");
-    optics_epoch_t epoch = optics_epoch(optics);
-
-    {
-        int64_t value = 0;
-        assert_int_equal(optics_counter_read(l0, epoch, &value), optics_ok);
-        assert_int_equal(optics_counter_read(l1, epoch, &value), optics_ok);
-        assert_int_equal(value, 0);
-    }
-
-    {
-        int64_t value = 0;
-
-        optics_counter_inc(l0, 1);
-        optics_counter_inc(l1, 10);
-
-        assert_int_equal(optics_counter_read(l0, epoch, &value), optics_ok);
-        assert_int_equal(optics_counter_read(l1, epoch, &value), optics_ok);
-        assert_int_equal(value, 11);
-    }
-
-
-    {
-        int64_t value = 0;
-
-        optics_counter_inc(l0, 1);
-        optics_counter_inc(l1, -10);
-
-        assert_int_equal(optics_counter_read(l0, epoch, &value), optics_ok);
-        assert_int_equal(optics_counter_read(l1, epoch, &value), optics_ok);
-        assert_int_equal(value, -9);
-    }
-
-    optics_lens_close(l0);
-    optics_lens_close(l1);
-    optics_close(optics);
-}
-optics_test_tail()
-
-
-// -----------------------------------------------------------------------------
 // type
 // -----------------------------------------------------------------------------
 
@@ -306,7 +258,6 @@ int main(void)
         cmocka_unit_test(lens_counter_create_test),
         cmocka_unit_test(lens_counter_open_test),
         cmocka_unit_test(lens_counter_record_read_test),
-        cmocka_unit_test(lens_counter_merge_test),
         cmocka_unit_test(lens_counter_type_test),
         cmocka_unit_test(lens_counter_epoch_st_test),
         cmocka_unit_test(lens_counter_epoch_mt_test),

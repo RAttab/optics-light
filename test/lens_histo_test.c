@@ -196,83 +196,6 @@ optics_test_tail()
 
 
 // -----------------------------------------------------------------------------
-// merge
-// -----------------------------------------------------------------------------
-
-optics_test_head(lens_histo_merge_test)
-{
-    const uint64_t buckets[] = {10, 20, 30, 40, 50};
-    struct optics *optics = optics_create(test_name);
-    struct optics_lens *l0 = optics_histo_create(optics, "l0", buckets, calc_len(buckets));
-    struct optics_lens *l1 = optics_histo_create(optics, "l1", buckets, calc_len(buckets));
-    optics_epoch_t epoch = optics_epoch(optics);
-
-    {
-        optics_histo_inc(l0, 11);
-        optics_histo_inc(l1, 22);
-
-        struct optics_histo value = {0};
-        assert_int_equal(optics_histo_read(l0, epoch, &value), optics_ok);
-        assert_int_equal(optics_histo_read(l1, epoch, &value), optics_ok);
-        assert_histo_equal(value, buckets, 0, 0, 1, 1, 0, 0);
-    }
-
-    {
-        optics_histo_inc(l0, 11);
-        optics_histo_inc(l1, 12);
-
-        struct optics_histo value = {0};
-        assert_int_equal(optics_histo_read(l0, epoch, &value), optics_ok);
-        assert_int_equal(optics_histo_read(l1, epoch, &value), optics_ok);
-        assert_histo_equal(value, buckets, 0, 0, 2, 0, 0, 0);
-    }
-
-    {
-        optics_histo_inc(l0, 1);
-        optics_histo_inc(l0, 51);
-
-        optics_histo_inc(l1, 2);
-        optics_histo_inc(l1, 52);
-
-        struct optics_histo value = {0};
-        assert_int_equal(optics_histo_read(l0, epoch, &value), optics_ok);
-        assert_int_equal(optics_histo_read(l1, epoch, &value), optics_ok);
-        assert_histo_equal(value, buckets, 2, 2, 0, 0, 0, 0);
-    }
-
-    {
-        const uint64_t buckets[] = {10, 20};
-        struct optics_lens *l2 = optics_histo_create(optics, "l2", buckets, calc_len(buckets));
-
-        struct optics_histo value = {0};
-        assert_int_equal(optics_histo_read(l0, epoch, &value), optics_ok);
-        assert_int_equal(optics_histo_read(l2, epoch, &value), optics_err);
-        assert_int_equal(optics_histo_read(l1, epoch, &value), optics_ok);
-
-        optics_lens_close(l2);
-    }
-
-    {
-        const uint64_t buckets[] = {10, 25, 30, 40, 50};
-        struct optics_lens *l2 = optics_histo_create(optics, "l2", buckets, calc_len(buckets));
-
-        struct optics_histo value = {0};
-        assert_int_equal(optics_histo_read(l0, epoch, &value), optics_ok);
-        assert_int_equal(optics_histo_read(l2, epoch, &value), optics_err);
-        assert_int_equal(optics_histo_read(l1, epoch, &value), optics_ok);
-
-        optics_lens_close(l2);
-    }
-
-    optics_lens_close(l0);
-    optics_lens_close(l1);
-    optics_close(optics);
-}
-optics_test_tail()
-
-
-
-// -----------------------------------------------------------------------------
 // type
 // -----------------------------------------------------------------------------
 
@@ -436,7 +359,6 @@ int main(void)
         cmocka_unit_test(lens_histo_open_test),
         cmocka_unit_test(lens_histo_validate_test),
         cmocka_unit_test(lens_histo_record_read_test),
-        cmocka_unit_test(lens_histo_merge_test),
         cmocka_unit_test(lens_histo_type_test),
         cmocka_unit_test(lens_histo_epoch_st_test),
         cmocka_unit_test(lens_histo_epoch_mt_test),

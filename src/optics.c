@@ -48,6 +48,7 @@ static void optics_free_defered(struct optics *optics, optics_epoch_t epoch);
 static void optics_free_lenses(struct optics *optics);
 
 // contains struct optics_lens
+#include "labels.c"
 #include "lens.c"
 
 
@@ -79,6 +80,7 @@ struct optics
     atomic_uintptr_t epoch_defers[2];
 
     char prefix[optics_name_max_len];
+    struct optics_labels labels;
 };
 
 
@@ -135,6 +137,21 @@ bool optics_set_prefix(struct optics *optics, const char *prefix)
 
     strlcpy(optics->prefix, prefix, optics_name_max_len);
     return true;
+}
+
+const struct optics_labels *optics_labels(struct optics *optics)
+{
+    return &optics->labels;
+}
+
+bool optics_label_set(struct optics *optics, const char *key, const char *val)
+{
+    return optics_labels_set(&optics->labels, key, val);
+}
+
+const struct optics_label *optics_label_get(const struct optics *optics, const char *key)
+{
+    return optics_labels_find(&optics->labels, key);
 }
 
 
@@ -359,6 +376,21 @@ const char * optics_lens_name(struct optics_lens *lens)
     return lens_name(lens);
 }
 
+const struct optics_labels *optics_lens_labels(struct optics_lens *lens)
+{
+    return lens_labels(lens);
+}
+
+bool optics_lens_label_set(struct optics_lens *lens, const char *key, const char *val)
+{
+    return lens_label_set(lens, key, val);
+}
+
+const struct optics_label *optics_lens_label_get(
+        const struct optics_lens *lens, const char *key)
+{
+    return lens_label_get(lens, key);
+}
 
 // -----------------------------------------------------------------------------
 // counter
